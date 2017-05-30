@@ -237,7 +237,7 @@ class Output extends Module{
 	 * @param string $t
 	 * @return array|bool
 	 */
-	private function findTemplateFile($t){
+	public function findTemplateFile($t){
 		if($t{0}=='/' and file_exists($t.'.php')){ // Sometimes (especially in modules management) the file is directly specified
 			$realName = substr($t, strlen(INCLUDE_PATH)).'.php';
 			return [
