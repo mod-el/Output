@@ -696,7 +696,7 @@ $this->cache = '.var_export($this->cache, true).';
 	 * @param array $opt
 	 * @return bool|string
 	 */
-	private function getUrl($controller=false, $id=false, $tags=[], $opt=[]){
+	public function getUrl($controller=false, $id=false, $tags=[], $opt=[]){
 	    return $this->model->getUrl($controller, $id, $tags, $opt);
     }
 
