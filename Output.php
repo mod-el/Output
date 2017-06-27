@@ -82,7 +82,7 @@ class Output extends Module{
      *
 	 * @param array $options
 	 */
-	public function render($options){
+	public function render(array $options){
 		$this->options = array_merge($this->options, $options);
 
 		if($this->options['showLayout']){
@@ -133,7 +133,7 @@ class Output extends Module{
 	 * @param array $options
 	 * @return mixed
 	 */
-	public function renderTemplate($t, $options=[]){
+	public function renderTemplate($t, array $options=[]){
 		$options = array_merge([
 			'cache' => true,
 			'request-bound' => false,
@@ -327,7 +327,7 @@ class Output extends Module{
 	 * @param array $fileData
 	 * @return bool|string
 	 */
-	private function getHtmlFromCache($path, $fileData){
+	private function getHtmlFromCache($path, array $fileData){
 		$cachePath = $this->getFileCachePath($path, $fileData);
 		$html = file_get_contents($cachePath);
 		return $html;
@@ -340,7 +340,7 @@ class Output extends Module{
 	 * @param array $fileData
 	 * @return bool
 	 */
-	private function cacheFileExists($path, $fileData){
+	private function cacheFileExists($path, array $fileData){
 		$cachePath = $this->getFileCachePath($path, $fileData);
 		return file_exists($cachePath);
 	}
@@ -353,7 +353,7 @@ class Output extends Module{
 	 * @param string $html
 	 * @param array $fileData
 	 */
-	private function saveFileInCache($file, $cacheKey, $html, $fileData){
+	private function saveFileInCache(array $file, $cacheKey, $html, array $fileData){
 		$cachePath = $this->getFileCachePath($cacheKey, $fileData);
 		$cachePathInfo = pathinfo($cachePath);
 		if(!is_dir($cachePathInfo['dirname']))
@@ -372,7 +372,7 @@ class Output extends Module{
 	 * @param array $fileData
 	 * @return string
 	 */
-	private function getFileCachePath($path, $fileData){
+	private function getFileCachePath($path, array $fileData){
 	    if($fileData['language-bound'] and $this->model->isLoaded('Multilang')){
 	        $path .= '-'.$this->model->_Multilang->lang;
         }
@@ -514,7 +514,7 @@ $this->cache = '.var_export($this->cache, true).';
 	 * @param string $js
 	 * @param array $options
 	 */
-	public function addJS($js, $options=array()){
+	public function addJS($js, array $options=array()){
 		$options = array_merge(array(
 			'with'=>array(),
 			'but'=>array(),
@@ -560,7 +560,7 @@ $this->cache = '.var_export($this->cache, true).';
 	 * @param string $css
 	 * @param array $options
 	 */
-	public function addCSS($css, $options=array()){
+	public function addCSS($css, array $options=array()){
 		$options = array_merge(array(
 			'with'=>array(),
 			'but'=>array(),
@@ -696,7 +696,7 @@ $this->cache = '.var_export($this->cache, true).';
 	 * @param array $opt
 	 * @return bool|string
 	 */
-	public function getUrl($controller=false, $id=false, $tags=[], $opt=[]){
+	public function getUrl($controller=false, $id=false, array $tags=[], array $opt=[]){
 	    return $this->model->getUrl($controller, $id, $tags, $opt);
     }
 
