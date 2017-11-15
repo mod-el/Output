@@ -247,7 +247,7 @@ class Output extends Module{
 		}
 
 		$paths = [
-			'data'.DIRECTORY_SEPARATOR.'templates',
+			'app'.DIRECTORY_SEPARATOR.'templates',
 		];
 
 		if($this->options['template-path']) {
