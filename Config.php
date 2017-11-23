@@ -1,7 +1,8 @@
-<?php
-namespace Model;
+<?php namespace Model\Output;
 
-class Output_Config extends Module_Config {
+use Model\Core\Module_Config;
+
+class Config extends Module_Config {
 	/**
 	 * Creates (or wipes) the cache metadata file
 	 *
