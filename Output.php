@@ -1,7 +1,8 @@
-<?php
-namespace Model;
+<?php namespace Model\Output;
 
-class Output extends Module{
+use Model\Core\Module;
+
+class Output extends Module {
 	/** @var bool|array */
 	private $cache = false;
 	/** @var bool */

@@ -1,0 +1,6 @@
+{
+	"name": "Output",
+	"description": "Templating engine with cache management",
+	"version": "0.1.1",
+	"dependencies": {}
+}
