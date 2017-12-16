@@ -1,5 +1,6 @@
 <?php namespace Model\Output;
 
+use Model\Core\Autoloader;
 use Model\Core\Module;
 
 class Output extends Module {
@@ -17,10 +18,11 @@ class Output extends Module {
 		'footer' => [],
 		'bindHeaderToRequest' => false,
 		'bindFooterToRequest' => false,
-		'template-path' => false,
+		'template-module-layout' => null,
+		'template-module' => null,
 		'template-folder' => [],
 		'template' => false,
-		'theme' => false,
+		'theme' => null,
 		'showLayout' => true,
 		'showMessages' => true,
 		'showDebugInfo' => true,
@@ -78,10 +80,11 @@ class Output extends Module {
 	}
 
 	/**
-     * Renders the full page: header, template and footer
-     * If in debug mode shows the debug data
-     *
+	 * Renders the full page: header, template and footer
+	 * If in debug mode shows the debug data
+	 *
 	 * @param array $options
+	 * @throws \Model\Core\ZkException
 	 */
 	public function render(array $options){
 		$this->options = array_merge($this->options, $options);
@@ -91,8 +94,9 @@ class Output extends Module {
 				$this->options['header'] = [$this->options['header']];
 			foreach($this->options['header'] as $t){
 				$this->renderTemplate($t, [
-					'cache'=>$this->options['cacheHeader'],
-					'request-bound'=>$this->options['bindHeaderToRequest'],
+					'module' => $this->options['template-module-layout'] ?: $this->options['template-module'],
+					'cache' => $this->options['cacheHeader'],
+					'request-bound' => $this->options['bindHeaderToRequest'],
 					'element' => $this->model->element,
 				]);
 			}
@@ -100,9 +104,10 @@ class Output extends Module {
 
 		if($this->options['template']!==false and $this->options['template']!==null){
 			$this->renderTemplate($this->options['template'], [
-				'cache'=>$this->options['cacheTemplate'],
-				'show-messages'=>$this->options['showMessages'],
-				'request-bound'=>true,
+				'module' => $this->options['template-module'],
+				'cache' => $this->options['cacheTemplate'],
+				'show-messages' => $this->options['showMessages'],
+				'request-bound' => true,
 				'element' => $this->model->element,
 			]);
 		}else{ // If there is no template, I still need to show eventual messages
@@ -115,8 +120,9 @@ class Output extends Module {
 				$this->options['footer'] = [$this->options['footer']];
 			foreach($this->options['footer'] as $t){
 				$this->renderTemplate($t, [
-					'cache'=>$this->options['cacheFooter'],
-					'request-bound'=>$this->options['bindFooterToRequest'],
+					'module' => $this->options['template-module-layout'] ?: $this->options['template-module'],
+					'cache' => $this->options['cacheFooter'],
+					'request-bound' => $this->options['bindFooterToRequest'],
 					'element' => $this->model->element,
 				]);
 			}
@@ -128,25 +134,27 @@ class Output extends Module {
 	}
 
 	/**
-     * Renders a specific template, using the cache if requested
-     *
+	 * Renders a specific template, using the cache if requested
+	 *
 	 * @param string $t
 	 * @param array $options
 	 * @return mixed
+	 * @throws \Model\Core\ZkException
 	 */
-	public function renderTemplate($t, array $options=[]){
+	public function renderTemplate($t, array $options = []){
 		$options = array_merge([
 			'cache' => true,
 			'request-bound' => false,
 			'show-messages' => false,
 			'element' => null,
+			'module' => null,
 			'return' => false,
 		], $options);
 
 		if(!$this->options['cache']) // Main switch for the cache
 		    $options['cache'] = false;
 
-		$file = $this->findTemplateFile($t);
+		$file = $this->findTemplateFile($t, $options['module']);
 		if(!$file){
 			if(DEBUG_MODE){
 				if($options['return'])
@@ -191,13 +199,13 @@ class Output extends Module {
 						$sub_html = $this->options[$t];
 					}elseif(strpos($t, 't:')===0){ // Template
 						$template = substr($t, 2);
-						$sub_html = $this->renderTemplate($template, ['return'=>true]);
+						$sub_html = $this->renderTemplate($template, ['return' => true, 'module' => $options['module']]);
 					}elseif(strpos($t, 'td:')===0){ // Dynamic (non-cached) template
 						$template = substr($t, 3);
-						$sub_html = $this->renderTemplate($template, ['cache'=>false, 'return'=>true]);
+						$sub_html = $this->renderTemplate($template, ['cache' => false, 'return' => true]);
 					}elseif(strpos($t, 'tr:')===0){ // Request bound template
 						$template = substr($t, 3);
-						$sub_html = $this->renderTemplate($template, ['request-bound'=>true, 'return'=>true]);
+						$sub_html = $this->renderTemplate($template, ['request-bound' => true, 'return' => true]);
 					}elseif(strpos($t, 'el:')===0 and $options['element']!==null){ // Element data
 						$dato = substr($t, 3);
 						$sub_html = $options['element'][$dato];
@@ -236,47 +244,37 @@ class Output extends Module {
      * Seeks for the location of a template
      *
 	 * @param string $t
+	 * @param string $module
 	 * @return array|bool
 	 */
-	public function findTemplateFile($t){
-		if(strpos($t, INCLUDE_PATH)===0 and file_exists($t.'.php')){ // Sometimes (especially in modules management) the file is directly specified
-			$realName = substr($t, strlen(INCLUDE_PATH)).'.php';
-			return [
-				'path' => $realName,
-				'modified' => filemtime(INCLUDE_PATH.$realName),
-			];
-		}
-
-		$paths = [
-			'app'.DIRECTORY_SEPARATOR.'templates',
+	public function findTemplateFile($t, $module = null){
+		$files = [
+			$t,
 		];
 
-		if($this->options['template-path']) {
-			$paths[] = $this->options['template-path'];
-		}
-
-		foreach($this->options['template-folder'] as $f){
-			foreach($paths as $p){
-				$paths[] = $p.DIRECTORY_SEPARATOR.$f;
+		foreach($this->options['template-folder'] as $folder){
+			foreach($files as $f){
+				$files[] = $folder.DIRECTORY_SEPARATOR.$f;
 			}
 		}
 
 		if($this->options['theme']){
-			$new_paths = [];
-			foreach($paths as $p){
-				$new_paths[] = $p;
-				$new_paths[] = $p.DIRECTORY_SEPARATOR.$this->options['theme'];
+			$new_files = [];
+			foreach($files as $f){
+				$new_files[] = $f;
+				$new_files[] = $this->options['theme'].DIRECTORY_SEPARATOR.$f;
 			}
-			$paths = $new_paths;
+			$files = $new_files;
 		}
 
-		$paths = array_reverse($paths);
+		$files = array_reverse($files);
 
-		foreach($paths as $p){
-			if(file_exists(INCLUDE_PATH.$p.DIRECTORY_SEPARATOR.$t.'.php')){
+		foreach($files as $f){
+		    $file = Autoloader::searchFile('template', $f, $module);
+			if($file){
 				return [
-					'path' => $p.DIRECTORY_SEPARATOR.$t.'.php',
-					'modified' => filemtime(INCLUDE_PATH.$p.DIRECTORY_SEPARATOR.$t.'.php'),
+					'path' => $file,
+					'modified' => filemtime($file),
 				];
 			}
 		}
@@ -309,7 +307,7 @@ class Output extends Module {
 		$this->languageBound = false;
 
 		ob_start();
-		include(INCLUDE_PATH.$t);
+		include($t);
 		$html = ob_get_clean();
 
 		return [
@@ -439,12 +437,13 @@ $this->cache = '.var_export($this->cache, true).';
 	}
 
 	/**
-     * Output a datum in JSON format and ends the execution of the script
-     * It will automatically wrap data (if not in CLI) with the debug data and/or bindings (to use in conjunctions with the JS functions)
-     *
+	 * Output a datum in JSON format and ends the execution of the script
+	 * It will automatically wrap data (if not in CLI) with the debug data and/or bindings (to use in conjunctions with the JS functions)
+	 *
 	 * @param mixed $arr
 	 * @param bool $wrapData
 	 * @param bool $pretty
+	 * @throws \Model\Core\ZkException
 	 */
 	public function sendJSON($arr, $wrapData=null, $pretty=null){
 		if($wrapData===null){
@@ -602,10 +601,11 @@ $this->cache = '.var_export($this->cache, true).';
 	}
 
 	/**
-     * Echoes or returns the html for the "head" section of the page
-     *
+	 * Echoes or returns the html for the "head" section of the page
+	 *
 	 * @param bool $return
 	 * @return string|
+	 * @throws \Model\Core\ZkException
 	 */
 	private function head($return=false){
 	    if($return)
@@ -689,13 +689,14 @@ $this->cache = '.var_export($this->cache, true).';
     }
 
 	/**
-     * Shortcut for $this->model->getUrl
-     *
+	 * Shortcut for $this->model->getUrl
+	 *
 	 * @param string|bool $controller
 	 * @param int|bool $id
 	 * @param array $tags
 	 * @param array $opt
 	 * @return bool|string
+	 * @throws \Model\Core\ZkException
 	 */
 	public function getUrl($controller=false, $id=false, array $tags=[], array $opt=[]){
 	    return $this->model->getUrl($controller, $id, $tags, $opt);
