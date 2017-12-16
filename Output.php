@@ -94,7 +94,7 @@ class Output extends Module {
 				$this->options['header'] = [$this->options['header']];
 			foreach($this->options['header'] as $t){
 				$this->renderTemplate($t, [
-
+					'module' => $this->options['template-module-layout'] ?: $this->options['template-module'],
 					'cache' => $this->options['cacheHeader'],
 					'request-bound' => $this->options['bindHeaderToRequest'],
 					'element' => $this->model->element,
