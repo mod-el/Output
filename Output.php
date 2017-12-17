@@ -84,7 +84,7 @@ class Output extends Module {
 	 * If in debug mode shows the debug data
 	 *
 	 * @param array $options
-	 * @throws \Model\Core\ZkException
+	 * @throws \Model\Core\Exception
 	 */
 	public function render(array $options){
 		$this->options = array_merge($this->options, $options);
@@ -139,7 +139,7 @@ class Output extends Module {
 	 * @param string $t
 	 * @param array $options
 	 * @return mixed
-	 * @throws \Model\Core\ZkException
+	 * @throws \Model\Core\Exception
 	 */
 	public function renderTemplate($t, array $options = []){
 		$options = array_merge([
@@ -443,7 +443,7 @@ $this->cache = '.var_export($this->cache, true).';
 	 * @param mixed $arr
 	 * @param bool $wrapData
 	 * @param bool $pretty
-	 * @throws \Model\Core\ZkException
+	 * @throws \Model\Core\Exception
 	 */
 	public function sendJSON($arr, $wrapData=null, $pretty=null){
 		if($wrapData===null){
@@ -605,7 +605,7 @@ $this->cache = '.var_export($this->cache, true).';
 	 *
 	 * @param bool $return
 	 * @return string|
-	 * @throws \Model\Core\ZkException
+	 * @throws \Model\Core\Exception
 	 */
 	private function head($return=false){
 	    if($return)
@@ -696,7 +696,7 @@ $this->cache = '.var_export($this->cache, true).';
 	 * @param array $tags
 	 * @param array $opt
 	 * @return bool|string
-	 * @throws \Model\Core\ZkException
+	 * @throws \Model\Core\Exception
 	 */
 	public function getUrl($controller=false, $id=false, array $tags=[], array $opt=[]){
 	    return $this->model->getUrl($controller, $id, $tags, $opt);
