@@ -193,8 +193,8 @@ class Output extends Module {
 					$sub_html = false;
 					if($t==='messages'){ // Messages
 						$sub_html = $this->getMessagesHtml();
-					}elseif($t==='head'){ // Head
-						$sub_html = $this->head(true);
+					}elseif($t==='head' or $t==='foot'){ // Head and Foot
+						$sub_html = $this->renderBasicSection($t, true);
 					}elseif(isset($this->options[$t])){ // Option
 						$sub_html = $this->options[$t];
 					}elseif(strpos($t, 't:')===0){ // Template
@@ -399,7 +399,9 @@ class Output extends Module {
      *
 	 * @param string $file
 	 */
-	private function removeFileFromCache($file){
+	public function removeFileFromCache($file){
+	    $this->getCacheData();
+
 		if(isset($this->cache[$file]))
 			unset($this->cache[$file]);
 
@@ -514,16 +516,17 @@ $this->cache = '.var_export($this->cache, true).';
 	 * @param string $js
 	 * @param array $options
 	 */
-	public function addJS($js, array $options=array()){
-		$options = array_merge(array(
-			'with'=>array(),
-			'but'=>array(),
-			'custom'=>true,
-		), $options);
+	public function addJS($js, array $options = []){
+		$options = array_merge([
+			'with' => [],
+			'but' => [],
+			'custom' => true,
+            'head' => false,
+		], $options);
 		if(!is_array($options['with']))
-			$options['with'] = array($options['with']);
+			$options['with'] = [$options['with']];
 		if(!is_array($options['but']))
-			$options['but'] = array($options['but']);
+			$options['but'] = [$options['but']];
 
 		if(!in_array($js, $this->js))
 			$this->js[] = $js;
@@ -548,7 +551,7 @@ $this->cache = '.var_export($this->cache, true).';
 	 * Removes all JavaScript files set by the user
 	 */
 	public function wipeJS(){
-		foreach($this->jsOptions as $name=>$options){
+		foreach($this->jsOptions as $name => $options){
 			if($options['custom'])
 				$this->removeJS($name);
 		}
@@ -560,16 +563,17 @@ $this->cache = '.var_export($this->cache, true).';
 	 * @param string $css
 	 * @param array $options
 	 */
-	public function addCSS($css, array $options=array()){
-		$options = array_merge(array(
-			'with'=>array(),
-			'but'=>array(),
-			'custom'=>true,
-		), $options);
+	public function addCSS($css, array $options = []){
+		$options = array_merge([
+			'with' => [],
+			'but' => [],
+			'custom' => true,
+            'head' => false,
+		], $options);
 		if(!is_array($options['with']))
-			$options['with'] = array($options['with']);
+			$options['with'] = [$options['with']];
 		if(!is_array($options['but']))
-			$options['but'] = array($options['but']);
+			$options['but'] = [$options['but']];
 
 		if(!in_array($css, $this->css))
 			$this->css[] = $css;
@@ -594,32 +598,54 @@ $this->cache = '.var_export($this->cache, true).';
 	 * Removes all CSS files set by the user
 	 */
 	public function wipeCSS(){
-		foreach($this->cssOptions as $name=>$options){
+		foreach($this->cssOptions as $name => $options){
 			if($options['custom'])
 				$this->removeCSS($name);
 		}
 	}
 
 	/**
-	 * Echoes or returns the html for the "head" section of the page
+	 * Echoes or returns the html for the "head" or "foot" section of the page
 	 *
+	 * @param string $type
 	 * @param bool $return
-	 * @return string|
+	 * @return string
 	 * @throws \Model\Core\Exception
 	 */
-	private function head($return=false){
-	    if($return)
-	        ob_start();
+	private function renderBasicSection($type, $return = true){
+		if($return)
+			ob_start();
 
-		if(!$this->model->isLoaded('Meta'))
-			echo '<title>'.APP_NAME.'</title>
+	    switch($type){
+            case 'head':
+				if(!$this->model->isLoaded('Meta'))
+					echo '<title>'.APP_NAME.'</title>
 ';
 
-		$modules = $this->model->allModules();
-		foreach($modules as $m) {
-		    if(is_object($m))
-			    $m->headings();
-		}
+				$modules = $this->model->allModules();
+				foreach($modules as $m) {
+					if(is_object($m))
+						$m->headings();
+				}
+
+				?>
+                <script type="text/javascript">
+					var c_id = '<?=isset($_SESSION['csrf']) ? $_SESSION['csrf'] : ''?>';
+					var base_path = '<?=PATH?>';
+					var absolute_path = '<?=$this->model->prefix()?>';
+					var absolute_url = <?=json_encode($this->model->getRequest())?>;
+                </script>
+				<?php
+                break;
+            case 'foot':
+                break;
+            default:
+				if($return)
+				    ob_clean();
+
+                $this->model->error('Unknown basic section type.');
+                break;
+        }
 
 		foreach($this->css as $file){
 			if(isset($this->cssOptions[$file])){
@@ -628,6 +654,8 @@ $this->cache = '.var_export($this->cache, true).';
 				if(in_array($this->model->leadingModule, $this->cssOptions[$file]['but']))
 					continue;
 			}
+			if((!$this->cssOptions[$file]['head'] and $type==='head') or ($this->cssOptions[$file]['head'] and $type==='foot'))
+				continue;
 			?><link rel="stylesheet" type="text/css" href="<?=strtolower(substr($file, 0, 4))=='http' ? $file : PATH.$file?>" />
 			<?php
 		}
@@ -639,24 +667,17 @@ $this->cache = '.var_export($this->cache, true).';
 				if(in_array($this->model->leadingModule, $this->jsOptions[$file]['but']))
 					continue;
 			}
+			if((!$this->jsOptions[$file]['head'] and $type==='head') or ($this->jsOptions[$file]['head'] and $type==='foot'))
+				continue;
 			?><script type="text/javascript" src="<?=strtolower(substr($file, 0, 4))=='http' ? $file : PATH.$file?>"></script>
 			<?php
 		}
 
-		?>
-		<script type="text/javascript">
-			var c_id = '<?=isset($_SESSION['csrf']) ? $_SESSION['csrf'] : ''?>';
-			var base_path = '<?=PATH?>';
-			var absolute_path = '<?=$this->model->prefix()?>';
-			var absolute_url = <?=json_encode($this->model->getRequest())?>;
-		</script>
-		<?php
-
-        if($return){
-            $html = ob_get_clean();
-            return $html;
-        }
-	}
+		if($return){
+			$html = ob_get_clean();
+			return $html;
+		}
+    }
 
 	/**
 	 * Prints the debug data
