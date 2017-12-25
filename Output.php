@@ -400,6 +400,8 @@ class Output extends Module {
 	 * @param string $file
 	 */
 	public function removeFileFromCache($file){
+	    $this->getCacheData();
+
 		if(isset($this->cache[$file]))
 			unset($this->cache[$file]);
 
