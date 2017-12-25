@@ -399,7 +399,7 @@ class Output extends Module {
      *
 	 * @param string $file
 	 */
-	private function removeFileFromCache($file){
+	public function removeFileFromCache($file){
 		if(isset($this->cache[$file]))
 			unset($this->cache[$file]);
 
