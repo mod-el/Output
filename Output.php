@@ -521,7 +521,7 @@ $this->cache = '.var_export($this->cache, true).';
 			'with' => [],
 			'but' => [],
 			'custom' => true,
-            'head' => false,
+            'head' => true,
 		], $options);
 		if(!is_array($options['with']))
 			$options['with'] = [$options['with']];
@@ -568,7 +568,7 @@ $this->cache = '.var_export($this->cache, true).';
 			'with' => [],
 			'but' => [],
 			'custom' => true,
-            'head' => false,
+            'head' => true,
 		], $options);
 		if(!is_array($options['with']))
 			$options['with'] = [$options['with']];
