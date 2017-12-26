@@ -521,7 +521,7 @@ $this->cache = '.var_export($this->cache, true).';
 			'with' => [],
 			'but' => [],
 			'custom' => true,
-            'head' => false,
+            'head' => true,
 		], $options);
 		if(!is_array($options['with']))
 			$options['with'] = [$options['with']];
@@ -558,6 +558,13 @@ $this->cache = '.var_export($this->cache, true).';
 	}
 
 	/**
+	 * @return array
+	 */
+	public function getJSList(){
+		return $this->js;
+	}
+
+	/**
 	 * Adds a CSS file to the output
 	 *
 	 * @param string $css
@@ -568,7 +575,7 @@ $this->cache = '.var_export($this->cache, true).';
 			'with' => [],
 			'but' => [],
 			'custom' => true,
-            'head' => false,
+            'head' => true,
 		], $options);
 		if(!is_array($options['with']))
 			$options['with'] = [$options['with']];
@@ -602,6 +609,13 @@ $this->cache = '.var_export($this->cache, true).';
 			if($options['custom'])
 				$this->removeCSS($name);
 		}
+	}
+
+	/**
+	 * @return array
+	 */
+	public function getCSSList(){
+		return $this->css;
 	}
 
 	/**

@@ -1,7 +1,7 @@
 {
 	"name": "Output",
 	"description": "Templating engine with cache management",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"dependencies": {},
 	"file-types": {
 		"template": {
