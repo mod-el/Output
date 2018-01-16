@@ -738,14 +738,14 @@ $this->cache = '.var_export($this->cache, true).';
     }
 
 	/**
-     * Retrieves a word from the dictionary
-     *
+	 * Retrieves a word from the dictionary
+	 *
 	 * @param string $k
+	 * @param string $lang
 	 * @return string
 	 */
-	private function word($k){
+	private function word(string $k, string $lang = null){
 		$this->languageBound = true;
-	    $dic = $this->model->_Multilang->getDictionary();
-	    return isset($dic[$k]) ? $dic[$k] : '';
+		return $this->model->_Multilang->word($k, $lang);
     }
 }
