@@ -51,7 +51,7 @@ class Output extends Module
 	/**
 	 * @param mixed $options
 	 */
-	public function init($options)
+	public function init(array $options)
 	{
 		$this->methods = [
 			'addCSS',
@@ -783,7 +783,7 @@ $this->cache = ' . var_export($this->cache, true) . ';
 	 * @return bool|string
 	 * @throws \Model\Core\Exception
 	 */
-	public function getUrl($controller = false, $id = false, array $tags = [], array $opt = [])
+	public function getUrl(string $controller = null, $id = false, array $tags = [], array $opt = [])
 	{
 		return $this->model->getUrl($controller, $id, $tags, $opt);
 	}
