@@ -79,6 +79,10 @@ class Output extends Module
 		$this->model->on('Db_changedTable', function ($data) {
 			$this->changedTable($data['table']);
 		});
+
+		$this->model->on('Multilang_changedDictionary', function ($data) {
+			$this->changedDictionary();
+		});
 	}
 
 	/**
@@ -308,7 +312,7 @@ class Output extends Module
 	 * @param string $t
 	 * @return array
 	 */
-	private function makeTemplateHtml(string $t) : array
+	private function makeTemplateHtml(string $t): array
 	{
 		$this->tempTableList = [];
 		$this->languageBound = false;
@@ -381,7 +385,7 @@ class Output extends Module
 	 * @param array $fileData
 	 * @return string
 	 */
-	private function getFileCachePath(string $path, array $fileData) : string
+	private function getFileCachePath(string $path, array $fileData): string
 	{
 		if ($fileData['language-bound'] and $this->model->isLoaded('Multilang')) {
 			$path .= '-' . $this->model->_Multilang->lang;
@@ -426,7 +430,7 @@ class Output extends Module
 	 *
 	 * @return string
 	 */
-	private function getRequestKey() : string
+	private function getRequestKey(): string
 	{
 		$request = $this->model->getRequest();
 		$inputs = $this->model->getInput();
@@ -505,7 +509,19 @@ $this->cache = ' . var_export($this->cache, true) . ';
 		foreach ($cache as $file => $data) {
 			if (in_array($table, $data['tables'])) {
 				$this->removeFileFromCache($file);
-			} elseif ($table == 'zk_dictionary' and $data['language-bound']) {
+			}
+		}
+	}
+
+	/**
+	 * Triggered whenever a word in the dictionary is changed; removes all the affected cache files
+	 */
+	private function changedDictionary()
+	{
+		$cache = $this->getCacheData();
+
+		foreach ($cache as $file => $data) {
+			if ($data['language-bound']) {
 				$this->removeFileFromCache($file);
 			}
 		}
@@ -699,7 +715,7 @@ $this->cache = ' . var_export($this->cache, true) . ';
 				continue;
 			?>
             <link rel="stylesheet" type="text/css"
-                  href="<?= strtolower(substr($file, 0, 4)) == 'http' ? $file : PATH . $file ?>" />
+                  href="<?= strtolower(substr($file, 0, 4)) == 'http' ? $file : PATH . $file ?>"/>
 			<?php
 		}
 
