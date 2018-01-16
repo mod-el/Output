@@ -8,7 +8,7 @@ class Config extends Module_Config {
 	 *
 	 * @return bool
 	 */
-	function makeCache(){
+	function makeCache(): bool{
 		$basePath = INCLUDE_PATH.'model'.DIRECTORY_SEPARATOR.'Output'.DIRECTORY_SEPARATOR.'data';
 		if(!is_dir($basePath))
 			mkdir($basePath);
