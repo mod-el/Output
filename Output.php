@@ -557,6 +557,7 @@ $this->cache = ' . var_export($this->cache, true) . ';
 			'but' => [],
 			'custom' => true,
 			'head' => true,
+			'cacheable' => true,
 		], $options);
 		if (!is_array($options['with']))
 			$options['with'] = [$options['with']];
@@ -595,11 +596,21 @@ $this->cache = ' . var_export($this->cache, true) . ';
 	}
 
 	/**
+	 * @param bool $onlyCacheable
 	 * @return array
 	 */
-	public function getJSList()
+	public function getJSList(bool $onlyCacheable = false): array
 	{
-		return $this->js;
+		if ($onlyCacheable) {
+			$arr = [];
+			foreach ($this->js as $js) {
+				if ($this->jsOptions[$js]['cacheable'])
+					$arr[] = $js;
+			}
+			return $arr;
+		} else {
+			return $this->js;
+		}
 	}
 
 	/**
@@ -615,6 +626,7 @@ $this->cache = ' . var_export($this->cache, true) . ';
 			'but' => [],
 			'custom' => true,
 			'head' => true,
+			'cacheable' => true,
 		], $options);
 		if (!is_array($options['with']))
 			$options['with'] = [$options['with']];
@@ -653,11 +665,21 @@ $this->cache = ' . var_export($this->cache, true) . ';
 	}
 
 	/**
+	 * @param bool $onlyCacheable
 	 * @return array
 	 */
-	public function getCSSList()
+	public function getCSSList(bool $onlyCacheable = false): array
 	{
-		return $this->css;
+		if ($onlyCacheable) {
+			$arr = [];
+			foreach ($this->css as $css) {
+				if ($this->cssOptions[$css]['cacheable'])
+					$arr[] = $css;
+			}
+			return $arr;
+		} else {
+			return $this->css;
+		}
 	}
 
 	/**
