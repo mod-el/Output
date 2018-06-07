@@ -173,37 +173,37 @@ class Output extends Module
 			return false;
 		}
 
-		if ($this->options['template-engine']) {
-			if ($options['cache']) {
-				$cache = $this->getCacheData();
+		if ($options['cache']) {
+			$cache = $this->getCacheData();
 
-				$cacheKey = $file['path'];
-				if ($options['request-bound']) {
-					$requestKey = $this->getRequestKey();
-					$cacheKey .= '.' . $requestKey;
-				}
+			$cacheKey = $file['path'];
+			if ($options['request-bound']) {
+				$requestKey = $this->getRequestKey();
+				$cacheKey .= '.' . $requestKey;
+			}
 
-				if (isset($cache[$file['path']]) and $file['modified'] === $cache[$file['path']]['modified'] and $this->cacheFileExists($cacheKey, $cache[$file['path']])) {
-					$html = $this->getHtmlFromCache($cacheKey, $cache[$file['path']]);
-				} else {
-					$templateData = $this->makeTemplateHtml($file['path']);
-					$html = $templateData['html'];
-					$this->saveFileInCache($file, $cacheKey, $templateData['html'], $templateData['data']);
-				}
+			if (isset($cache[$file['path']]) and $file['modified'] === $cache[$file['path']]['modified'] and $this->cacheFileExists($cacheKey, $cache[$file['path']])) {
+				$html = $this->getHtmlFromCache($cacheKey, $cache[$file['path']]);
 			} else {
 				$templateData = $this->makeTemplateHtml($file['path']);
 				$html = $templateData['html'];
+				$this->saveFileInCache($file, $cacheKey, $templateData['html'], $templateData['data']);
 			}
+		} else {
+			$templateData = $this->makeTemplateHtml($file['path']);
+			$html = $templateData['html'];
+		}
 
-			if (strpos($html, '[:') !== false) {
-				preg_match_all('/\[:([^\]]+?)\]/', $html, $tokens);
-				foreach ($tokens[1] as $t) {
-					$sub_html = false;
-					if ($t === 'messages') { // Messages
-						$sub_html = $this->getMessagesHtml();
-					} elseif ($t === 'head' or $t === 'foot') { // Head and Foot
-						$sub_html = $this->renderBasicSection($t, true);
-					} elseif (isset($this->options[$t])) { // Option
+		if (strpos($html, '[:') !== false) {
+			preg_match_all('/\[:([^\]]+?)\]/', $html, $tokens);
+			foreach ($tokens[1] as $t) {
+				$sub_html = false;
+				if ($t === 'messages') { // Messages
+					$sub_html = $this->getMessagesHtml();
+				} elseif ($t === 'head' or $t === 'foot') { // Head and Foot
+					$sub_html = $this->renderBasicSection($t, true);
+				} elseif ($this->options['template-engine']) {
+					if (isset($this->options[$t])) { // Option
 						$sub_html = $this->options[$t];
 					} elseif (strpos($t, 't:') === 0) { // Template
 						$template = substr($t, 2);
@@ -218,34 +218,21 @@ class Output extends Module
 						$dato = substr($t, 3);
 						$sub_html = $options['element'][$dato];
 					}
-
-					if ($sub_html !== false)
-						$html = str_replace('[:' . $t . ']', $sub_html, $html);
 				}
-			}
-			$html = str_replace('[\\:', '[:', $html);
 
-			if ($options['show-messages'] and !$this->messagesShown)
-				echo $this->getMessagesHtml();
-
-			if ($options['return'])
-				return $html;
-			else
-				echo $html;
-		} else {
-			ob_start();
-			include(INCLUDE_PATH . $file['path']);
-			$html = ob_get_clean();
-
-			if ($options['show-messages'] and !$this->messagesShown)
-				$html = $this->getMessagesHtml() . $html;
-
-			if ($options['return']) {
-				return $html;
-			} else {
-				echo $html;
+				if ($sub_html !== false)
+					$html = str_replace('[:' . $t . ']', $sub_html, $html);
 			}
 		}
+		$html = str_replace('[\\:', '[:', $html);
+
+		if ($options['show-messages'] and !$this->messagesShown)
+			echo $this->getMessagesHtml();
+
+		if ($options['return'])
+			return $html;
+		else
+			echo $html;
 	}
 
 	/**
@@ -708,11 +695,11 @@ $this->cache = ' . var_export($this->cache, true) . ';
 				}
 
 				?>
-                <script type="text/javascript">
+				<script type="text/javascript">
 					var base_path = '<?=PATH?>';
 					var absolute_path = '<?=$this->model->prefix()?>';
 					var absolute_url = <?=json_encode($this->model->getRequest())?>;
-                </script>
+				</script>
 				<?php
 				break;
 			case 'foot':
@@ -735,8 +722,8 @@ $this->cache = ' . var_export($this->cache, true) . ';
 			if ((!$this->cssOptions[$file]['head'] and $type === 'head') or ($this->cssOptions[$file]['head'] and $type === 'foot'))
 				continue;
 			?>
-            <link rel="stylesheet" type="text/css"
-                  href="<?= strtolower(substr($file, 0, 4)) == 'http' ? $file : PATH . $file ?>"/>
+			<link rel="stylesheet" type="text/css"
+				  href="<?= strtolower(substr($file, 0, 4)) == 'http' ? $file : PATH . $file ?>"/>
 			<?php
 		}
 
@@ -750,8 +737,8 @@ $this->cache = ' . var_export($this->cache, true) . ';
 			if ((!$this->jsOptions[$file]['head'] and $type === 'head') or ($this->jsOptions[$file]['head'] and $type === 'foot'))
 				continue;
 			?>
-            <script type="text/javascript"
-                    src="<?= strtolower(substr($file, 0, 4)) == 'http' ? $file : PATH . $file ?>"></script>
+			<script type="text/javascript"
+					src="<?= strtolower(substr($file, 0, 4)) == 'http' ? $file : PATH . $file ?>"></script>
 			<?php
 		}
 
@@ -768,29 +755,28 @@ $this->cache = ' . var_export($this->cache, true) . ';
 	{
 		$debug = $this->model->getDebugData();
 		?>
-        <div data-zkdebug="<?= $this->options['showLayout'] ? 'main' : 'ajax' ?>" data-url="<?= $debug['request'] ?>"
-             style="display: none">
-            <b>Prefix:</b> <?= $debug['prefix'] ?><br/>
-            <b>Request:</b> <?= $debug['request'] ?><br/>
-            <b>Execution time:</b> <?= $debug['execution_time'] ?><br/>
-            <b>Controller:</b> <?= $debug['controller'] ?><br/>
+		<div data-zkdebug="<?= $this->options['showLayout'] ? 'main' : 'ajax' ?>" data-url="<?= $debug['request'] ?>"
+			 style="display: none">
+			<b>Prefix:</b> <?= $debug['prefix'] ?><br/> <b>Request:</b> <?= $debug['request'] ?><br/>
+			<b>Execution time:</b> <?= $debug['execution_time'] ?><br/> <b>Controller:</b> <?= $debug['controller'] ?>
+			<br/>
 			<?php if (isset($debug['pageId'])) { ?><b>Page Id:</b> <?= $debug['pageId'] ?><br/><?php } ?>
 			<?php if (isset($debug['elementType'], $debug['elementId'])) { ?>
-                <b>Element:</b> <?= $debug['elementType'] . ' #' . $debug['elementId'] ?><br/><?php } ?>
-            <b>Modules:</b> <?= implode(', ', $debug['modules']) ?><br/>
-            <b>Template:</b> <?= $this->options['template'] ?: 'none' ?><br/>
-            <b>Loading ID:</b> <?= $debug['zk_loading_id'] ?><br/>
+				<b>Element:</b> <?= $debug['elementType'] . ' #' . $debug['elementId'] ?><br/><?php } ?>
+			<b>Modules:</b> <?= implode(', ', $debug['modules']) ?><br/>
+			<b>Template:</b> <?= $this->options['template'] ?: 'none' ?><br/>
+			<b>Loading ID:</b> <?= $debug['zk_loading_id'] ?><br/>
 			<?php
 			if (isset($debug['n_query'])) {
 				?>
-                <b>Executed queries:</b> <?= $debug['n_query'] ?><br/>
-                <b>Prepared queries:</b> <?= $debug['n_prepared'] ?><br/>
-                <b>Queries per table:</b><br/>
+				<b>Executed queries:</b> <?= $debug['n_query'] ?><br/>
+				<b>Prepared queries:</b> <?= $debug['n_prepared'] ?><br/>
+				<b>Queries per table:</b><br/>
 				<?php
 				zkdump($debug['query_per_table']);
 			}
 			?>
-        </div>
+		</div>
 		<?php
 	}
 
