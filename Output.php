@@ -266,7 +266,11 @@ class Output extends Module
 		$files = array_reverse($files);
 
 		foreach ($files as $f) {
-			$file = Autoloader::searchFile('template', $f, $module);
+			if ($f and $f{0} === DIRECTORY_SEPARATOR and file_exists($f))
+				$file = $f;
+			else
+				$file = Autoloader::searchFile('template', $f, $module);
+
 			if ($file) {
 				return [
 					'path' => $file,
