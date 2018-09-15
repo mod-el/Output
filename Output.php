@@ -58,6 +58,10 @@ class Output extends Module
 			'addJS',
 			'removeCSS',
 			'removeJS',
+			'wipeCSS',
+			'wipeJS',
+			'getCSSList',
+			'getJSList',
 			'sendJSON',
 		];
 
