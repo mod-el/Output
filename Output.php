@@ -35,6 +35,8 @@ class Output extends Module
 		'errors' => [],
 		'messages' => [],
 	];
+	/** @var array */
+	private $injectedArr = [];
 
 	/** @var array */
 	private $css = [];
@@ -58,7 +60,13 @@ class Output extends Module
 			'addJS',
 			'removeCSS',
 			'removeJS',
+			'wipeCSS',
+			'wipeJS',
+			'getCSSList',
+			'getJSList',
 			'sendJSON',
+			'inject',
+			'injected',
 		];
 
 		$this->model->on('Db_select', function ($data) {
@@ -94,6 +102,9 @@ class Output extends Module
 	 */
 	public function render(array $options)
 	{
+		foreach ($this->injectedArr as $injName => $injObj)
+			${$injName} = $injObj;
+
 		$this->options = array_merge($this->options, $options);
 
 		if ($this->options['showLayout']) {
@@ -486,6 +497,31 @@ $this->cache = ' . var_export($this->cache, true) . ';
 		if ($pretty)
 			echo PHP_EOL;
 		die();
+	}
+
+	/**
+	 * @param string $name
+	 * @param mixed $var
+	 */
+	public function inject(string $name, $var)
+	{
+		if (!preg_match('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*$/', $name))
+			$this->model->error('Injected variable "' . entities($name) . '" is not a valid name for a variable.');
+
+		$this->injectedArr[$name] = $var;
+	}
+
+	/**
+	 * @param string|null $name
+	 * @return mixed|null
+	 */
+	public function injected(?string $name = null)
+	{
+		if ($name === null) {
+			return $this->injectedArr;
+		} else {
+			return $this->injectedArr[$name] ?? null;
+		}
 	}
 
 	/**
