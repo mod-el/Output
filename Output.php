@@ -102,9 +102,6 @@ class Output extends Module
 	 */
 	public function render(array $options)
 	{
-		foreach ($this->injectedArr as $injName => $injObj)
-			${$injName} = $injObj;
-
 		$this->options = array_merge($this->options, $options);
 
 		if ($this->options['showLayout']) {
@@ -318,6 +315,9 @@ class Output extends Module
 	{
 		$this->tempTableList = [];
 		$this->languageBound = false;
+
+		foreach ($this->injectedArr as $injName => $injObj)
+			${$injName} = $injObj;
 
 		ob_start();
 		include($t);
