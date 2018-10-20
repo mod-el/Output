@@ -1,9 +1,9 @@
 {
 	"name": "Output",
 	"description": "Templating engine with cache management",
-	"version": "0.3.0",
+	"version": "0.3.1",
 	"dependencies": {
-		"Core": ">=2.6.3"
+		"Core": ">=2.7.0"
 	},
 	"file-types": {
 		"template": {

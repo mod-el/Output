@@ -724,7 +724,7 @@ $this->cache = ' . var_export($this->cache, true) . ';
 
 		switch ($type) {
 			case 'head':
-				if (!$this->model->isLoaded('Meta'))
+				if (!$this->model->isLoaded('Seo'))
 					echo '<title>' . APP_NAME . '</title>
 ';
 
@@ -733,7 +733,6 @@ $this->cache = ' . var_export($this->cache, true) . ';
 					if (is_object($m))
 						$m->headings();
 				}
-
 				?>
 				<script type="text/javascript">
 					var base_path = '<?=PATH?>';
