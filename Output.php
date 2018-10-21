@@ -55,20 +55,6 @@ class Output extends Module
 	 */
 	public function init(array $options)
 	{
-		$this->methods = [
-			'addCSS',
-			'addJS',
-			'removeCSS',
-			'removeJS',
-			'wipeCSS',
-			'wipeJS',
-			'getCSSList',
-			'getJSList',
-			'sendJSON',
-			'inject',
-			'injected',
-		];
-
 		$this->model->on('Db_select', function ($data) {
 			if (!in_array($data['table'], $this->tempTableList))
 				$this->tempTableList[] = $data['table'];
@@ -823,13 +809,12 @@ $this->cache = ' . var_export($this->cache, true) . ';
 	 * Shortcut for $this->model->getUrl
 	 *
 	 * @param string|bool $controller
-	 * @param int|bool $id
+	 * @param null|string $id
 	 * @param array $tags
 	 * @param array $opt
 	 * @return bool|string
-	 * @throws \Model\Core\Exception
 	 */
-	public function getUrl(string $controller = null, $id = false, array $tags = [], array $opt = [])
+	public function getUrl(?string $controller = null, ?string $id = null, array $tags = [], array $opt = []): ?string
 	{
 		return $this->model->getUrl($controller, $id, $tags, $opt);
 	}
