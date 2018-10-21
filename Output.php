@@ -55,20 +55,6 @@ class Output extends Module
 	 */
 	public function init(array $options)
 	{
-		$this->methods = [
-			'addCSS',
-			'addJS',
-			'removeCSS',
-			'removeJS',
-			'wipeCSS',
-			'wipeJS',
-			'getCSSList',
-			'getJSList',
-			'sendJSON',
-			'inject',
-			'injected',
-		];
-
 		$this->model->on('Db_select', function ($data) {
 			if (!in_array($data['table'], $this->tempTableList))
 				$this->tempTableList[] = $data['table'];
