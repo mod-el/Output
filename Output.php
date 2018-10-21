@@ -809,13 +809,12 @@ $this->cache = ' . var_export($this->cache, true) . ';
 	 * Shortcut for $this->model->getUrl
 	 *
 	 * @param string|bool $controller
-	 * @param int|bool $id
+	 * @param null|string $id
 	 * @param array $tags
 	 * @param array $opt
 	 * @return bool|string
-	 * @throws \Model\Core\Exception
 	 */
-	public function getUrl(string $controller = null, $id = false, array $tags = [], array $opt = [])
+	public function getUrl(?string $controller = null, ?string $id = null, array $tags = [], array $opt = []): ?string
 	{
 		return $this->model->getUrl($controller, $id, $tags, $opt);
 	}
