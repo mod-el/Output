@@ -3,7 +3,7 @@
 	"description": "Templating engine with cache management",
 	"version": "0.3.2",
 	"dependencies": {
-		"Core": ">=2.7.1"
+		"Core": ">=2.8.1"
 	},
 	"file-types": {
 		"template": {
