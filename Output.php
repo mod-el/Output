@@ -724,6 +724,10 @@ $this->cache = ' . var_export($this->cache, true) . ';
 					var base_path = '<?=PATH?>';
 					var absolute_path = '<?=$this->model->prefix()?>';
 					var absolute_url = <?=json_encode($this->model->getRequest())?>;
+
+					var PATHBASE = '<?=PATH?>';
+					var PATH = '<?=$this->model->prefix()?>';
+					var REQUEST = <?=json_encode($this->model->getRequest())?>;
 				</script>
 				<?php
 				break;
