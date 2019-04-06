@@ -33,6 +33,7 @@ class Output extends Module
 		'cacheTemplate' => true,
 		'cacheFooter' => true,
 		'errors' => [],
+		'warnings' => [],
 		'messages' => [],
 	];
 	/** @var array */
@@ -552,6 +553,8 @@ $this->cache = ' . var_export($this->cache, true) . ';
 		$html = '';
 		if (!empty($this->options['errors']))
 			$html .= '<div class="red-message">' . implode('<br />', $this->options['errors']) . '</div>';
+		if (!empty($this->options['warnings']))
+			$html .= '<div class="orange-message">' . implode('<br />', $this->options['warnings']) . '</div>';
 		if (!empty($this->options['messages']))
 			$html .= '<div class="green-message">' . implode('<br />', $this->options['messages']) . '</div>';
 		return $html;
@@ -752,7 +755,7 @@ $this->cache = ' . var_export($this->cache, true) . ';
 				continue;
 			?>
 			<link rel="stylesheet" type="text/css"
-				  href="<?= strtolower(substr($file, 0, 4)) == 'http' ? $file : PATH . $file ?>"/>
+			      href="<?= strtolower(substr($file, 0, 4)) == 'http' ? $file : PATH . $file ?>"/>
 			<?php
 		}
 
@@ -767,7 +770,7 @@ $this->cache = ' . var_export($this->cache, true) . ';
 				continue;
 			?>
 			<script type="text/javascript"
-					src="<?= strtolower(substr($file, 0, 4)) == 'http' ? $file : PATH . $file ?>"></script>
+			        src="<?= strtolower(substr($file, 0, 4)) == 'http' ? $file : PATH . $file ?>"></script>
 			<?php
 		}
 
@@ -785,7 +788,7 @@ $this->cache = ' . var_export($this->cache, true) . ';
 		$debug = $this->model->getDebugData();
 		?>
 		<div data-zkdebug="<?= $this->options['showLayout'] ? 'main' : 'ajax' ?>" data-url="<?= $debug['request'] ?>"
-			 style="display: none">
+		     style="display: none">
 			<b>Prefix:</b> <?= $debug['prefix'] ?><br/> <b>Request:</b> <?= $debug['request'] ?><br/>
 			<b>Execution time:</b> <?= $debug['execution_time'] ?><br/> <b>Controller:</b> <?= $debug['controller'] ?>
 			<br/>
