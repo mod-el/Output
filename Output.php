@@ -33,6 +33,7 @@ class Output extends Module
 		'cacheTemplate' => true,
 		'cacheFooter' => true,
 		'errors' => [],
+		'warnings' => [],
 		'messages' => [],
 	];
 	/** @var array */
@@ -551,9 +552,37 @@ $this->cache = ' . var_export($this->cache, true) . ';
 
 		$html = '';
 		if (!empty($this->options['errors']))
-			$html .= '<div class="red-message">' . implode('<br />', $this->options['errors']) . '</div>';
+			$html .= $this->getMessageSetHtml($this->options['errors'], 'danger');
+		if (!empty($this->options['warnings']))
+			$html .= $this->getMessageSetHtml($this->options['warnings'], 'warning');
 		if (!empty($this->options['messages']))
-			$html .= '<div class="green-message">' . implode('<br />', $this->options['messages']) . '</div>';
+			$html .= $this->getMessageSetHtml($this->options['messages'], 'success');
+		return $html;
+	}
+
+	private function getMessageSetHtml(array $messages, string $type): string
+	{
+		$classes = [
+			'danger' => 'red-message',
+			'warning' => 'orange-message',
+			'success' => 'green-message',
+		];
+		if (!isset($classes[$type]))
+			$this->model->error('Unrecognized message type in output module');
+
+		$html = '';
+		foreach ($messages as $message) {
+			if ($this->model->isLoaded('Bootstrap')) {
+				$html .= '<div class="alert alert-' . $type . ' alert-dismissible fade show" role="alert">
+				  ' . $message . '
+				  <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+				    <span aria-hidden="true">&times;</span>
+				  </button>
+				</div>';
+			} else {
+				$html .= '<div class="' . $classes[$type] . '">' . $message . '</div>';
+			}
+		}
 		return $html;
 	}
 
@@ -752,7 +781,7 @@ $this->cache = ' . var_export($this->cache, true) . ';
 				continue;
 			?>
 			<link rel="stylesheet" type="text/css"
-				  href="<?= strtolower(substr($file, 0, 4)) == 'http' ? $file : PATH . $file ?>"/>
+			      href="<?= strtolower(substr($file, 0, 4)) == 'http' ? $file : PATH . $file ?>"/>
 			<?php
 		}
 
@@ -767,7 +796,7 @@ $this->cache = ' . var_export($this->cache, true) . ';
 				continue;
 			?>
 			<script type="text/javascript"
-					src="<?= strtolower(substr($file, 0, 4)) == 'http' ? $file : PATH . $file ?>"></script>
+			        src="<?= strtolower(substr($file, 0, 4)) == 'http' ? $file : PATH . $file ?>"></script>
 			<?php
 		}
 
@@ -785,7 +814,7 @@ $this->cache = ' . var_export($this->cache, true) . ';
 		$debug = $this->model->getDebugData();
 		?>
 		<div data-zkdebug="<?= $this->options['showLayout'] ? 'main' : 'ajax' ?>" data-url="<?= $debug['request'] ?>"
-			 style="display: none">
+		     style="display: none">
 			<b>Prefix:</b> <?= $debug['prefix'] ?><br/> <b>Request:</b> <?= $debug['request'] ?><br/>
 			<b>Execution time:</b> <?= $debug['execution_time'] ?><br/> <b>Controller:</b> <?= $debug['controller'] ?>
 			<br/>
