@@ -552,11 +552,37 @@ $this->cache = ' . var_export($this->cache, true) . ';
 
 		$html = '';
 		if (!empty($this->options['errors']))
-			$html .= '<div class="red-message">' . implode('<br />', $this->options['errors']) . '</div>';
+			$html .= $this->getMessageSetHtml($this->options['errors'], 'danger');
 		if (!empty($this->options['warnings']))
-			$html .= '<div class="orange-message">' . implode('<br />', $this->options['warnings']) . '</div>';
+			$html .= $this->getMessageSetHtml($this->options['warnings'], 'warning');
 		if (!empty($this->options['messages']))
-			$html .= '<div class="green-message">' . implode('<br />', $this->options['messages']) . '</div>';
+			$html .= $this->getMessageSetHtml($this->options['messages'], 'success');
+		return $html;
+	}
+
+	private function getMessageSetHtml(array $messages, string $type): string
+	{
+		$classes = [
+			'danger' => 'red-message',
+			'warning' => 'orange-message',
+			'success' => 'green-message',
+		];
+		if (!isset($classes[$type]))
+			$this->model->error('Unrecognized message type in output module');
+
+		$html = '';
+		foreach ($messages as $message) {
+			if ($this->model->isLoaded('Bootstrap')) {
+				$html .= '<div class="alert alert-' . $type . ' alert-dismissible fade show" role="alert">
+				  ' . $message . '
+				  <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+				    <span aria-hidden="true">&times;</span>
+				  </button>
+				</div>';
+			} else {
+				$html .= '<div class="' . $classes[$type] . '">' . $message . '</div>';
+			}
+		}
 		return $html;
 	}
 
