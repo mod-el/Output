@@ -10,9 +10,7 @@ class Output extends Module
 	/** @var bool */
 	private $editedCache = false;
 	/** @var array */
-	private $tempTableList = [];
-	/** @var true */
-	private $languageBound = false;
+	private $renderingsMetaData = [];
 	/** @var array */
 	protected $options = [
 		'header' => [],
@@ -28,7 +26,7 @@ class Output extends Module
 		'showMessages' => true,
 		'showDebugInfo' => true,
 		'template-engine' => true,
-		'cache' => true,
+		'cache' => false,
 		'cacheHeader' => true,
 		'cacheTemplate' => true,
 		'cacheFooter' => true,
@@ -57,16 +55,18 @@ class Output extends Module
 	public function init(array $options)
 	{
 		$this->model->on('Db_select', function ($data) {
-			if (!in_array($data['table'], $this->tempTableList))
-				$this->tempTableList[] = $data['table'];
+			foreach ($this->renderingsMetaData as $template => $metadata) {
+				if (!in_array($data['table'], $metadata['tables']))
+					$this->renderingsMetaData[$template]['tables'][] = $data['table'];
+			}
 
-			if ($this->model->isLoaded('Multilang')) {
-				if (array_key_exists($data['table'], $this->model->_Multilang->tables)) {
-					$this->languageBound = true;
+			if ($this->model->isLoaded('Multilang') and array_key_exists($data['table'], $this->model->_Multilang->tables)) {
+				foreach ($this->renderingsMetaData as $template => $metadata) {
+					$this->renderingsMetaData[$template]['language-bound'] = true;
 
 					$textsTable = $data['table'] . $this->model->_Multilang->tables[$data['table']]['suffix'];
-					if (!in_array($textsTable, $this->tempTableList))
-						$this->tempTableList[] = $textsTable;
+					if (!in_array($textsTable, $metadata['tables']))
+						$this->renderingsMetaData[$template]['tables'][] = $textsTable;
 				}
 			}
 		});
@@ -285,9 +285,8 @@ class Output extends Module
 	private function getCacheData()
 	{
 		if ($this->cache === false) {
-			if (file_exists(INCLUDE_PATH . 'model' . DIRECTORY_SEPARATOR . 'Output' . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'cache.php')) {
+			if (file_exists(INCLUDE_PATH . 'model' . DIRECTORY_SEPARATOR . 'Output' . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'cache.php'))
 				require(INCLUDE_PATH . 'model' . DIRECTORY_SEPARATOR . 'Output' . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'cache.php');
-			}
 		}
 		return $this->cache;
 	}
@@ -300,8 +299,12 @@ class Output extends Module
 	 */
 	private function makeTemplateHtml(string $t): array
 	{
-		$this->tempTableList = [];
-		$this->languageBound = false;
+		if (!isset($this->renderingsMetaData[$t])) {
+			$this->renderingsMetaData[$t] = [
+				'tables' => [],
+				'language-bound' => false,
+			];
+		}
 
 		foreach ($this->injectedArr as $injName => $injObj)
 			${$injName} = $injObj;
@@ -310,13 +313,13 @@ class Output extends Module
 		include($t);
 		$html = ob_get_clean();
 
-		return [
+		$ret = [
 			'html' => $html,
-			'data' => [
-				'tables' => $this->tempTableList,
-				'language-bound' => $this->languageBound,
-			],
+			'data' => $this->renderingsMetaData[$t],
 		];
+		unset($this->renderingsMetaData[$t]);
+
+		return $ret;
 	}
 
 	/**
@@ -861,7 +864,9 @@ $this->cache = ' . var_export($this->cache, true) . ';
 	 */
 	private function word(string $k, string $lang = null)
 	{
-		$this->languageBound = true;
+		foreach ($this->renderingsMetaData as $template => $metadata)
+			$this->renderingsMetaData[$template]['language-bound'] = true;
+
 		return $this->model->_Multilang->word($k, $lang);
 	}
 }
