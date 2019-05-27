@@ -294,30 +294,32 @@ class Output extends Module
 	/**
 	 * Parses a template file and returns its output, keeping track of which table were used (and if a language-linked action was done)
 	 *
-	 * @param string $t
+	 * @param string $template
 	 * @return array
 	 */
-	private function makeTemplateHtml(string $t): array
+	private function makeTemplateHtml(string $template): array
 	{
-		if (!isset($this->renderingsMetaData[$t])) {
-			$this->renderingsMetaData[$t] = [
+		if (!isset($this->renderingsMetaData[$template])) {
+			$this->renderingsMetaData[$template] = [
 				'tables' => [],
 				'language-bound' => false,
 			];
 		}
 
-		foreach ($this->injectedArr as $injName => $injObj)
-			${$injName} = $injObj;
+		$html = (function ($template) {
+			foreach ($this->injectedArr as $injName => $injObj)
+				${$injName} = $injObj;
 
-		ob_start();
-		include($t);
-		$html = ob_get_clean();
+			ob_start();
+			include($template);
+			return ob_get_clean();
+		})($template);
 
 		$ret = [
 			'html' => $html,
-			'data' => $this->renderingsMetaData[$t],
+			'data' => $this->renderingsMetaData[$template],
 		];
-		unset($this->renderingsMetaData[$t]);
+		unset($this->renderingsMetaData[$template]);
 
 		return $ret;
 	}
