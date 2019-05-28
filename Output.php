@@ -202,13 +202,24 @@ class Output extends Module
 						$sub_html = $this->options[$t];
 					} elseif (strpos($t, 't:') === 0) { // Template
 						$template = substr($t, 2);
-						$sub_html = $this->renderTemplate($template, ['return' => true, 'module' => $options['module']]);
+						$sub_html = $this->renderTemplate($template, [
+							'cache' => $options['cache'],
+							'return' => true,
+							'module' => $options['module'],
+						]);
 					} elseif (strpos($t, 'td:') === 0) { // Dynamic (non-cached) template
 						$template = substr($t, 3);
-						$sub_html = $this->renderTemplate($template, ['cache' => false, 'return' => true]);
+						$sub_html = $this->renderTemplate($template, [
+							'cache' => false,
+							'return' => true,
+						]);
 					} elseif (strpos($t, 'tr:') === 0) { // Request bound template
 						$template = substr($t, 3);
-						$sub_html = $this->renderTemplate($template, ['request-bound' => true, 'return' => true]);
+						$sub_html = $this->renderTemplate($template, [
+							'cache' => $options['cache'],
+							'request-bound' => true,
+							'return' => true,
+						]);
 					} elseif (strpos($t, 'el:') === 0 and $options['element'] !== null) { // Element data
 						$dato = substr($t, 3);
 						$sub_html = $options['element'][$dato];
