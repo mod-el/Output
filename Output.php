@@ -875,7 +875,7 @@ $this->cache = ' . var_export($this->cache, true) . ';
 	 * @param string $lang
 	 * @return string
 	 */
-	private function word(string $k, string $lang = null)
+	protected function word(string $k, string $lang = null): string
 	{
 		foreach ($this->renderingsMetaData as $template => $metadata)
 			$this->renderingsMetaData[$template]['language-bound'] = true;
