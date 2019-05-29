@@ -180,6 +180,9 @@ class Output extends Module
 			if (isset($cache[$file['path']]) and $file['modified'] === $cache[$file['path']]['modified'] and $this->cacheFileExists($cacheKey, $cache[$file['path']])) {
 				$html = $this->getHtmlFromCache($cacheKey, $cache[$file['path']]);
 			} else {
+				if (isset($cache[$file['path']]) and $file['modified'] !== $cache[$file['path']]['modified'])
+					$this->removeFileFromCache($file['path']);
+
 				$templateData = $this->makeTemplateHtml($file['path']);
 				$html = $templateData['html'];
 				$this->saveFileInCache($file, $cacheKey, $templateData['html'], $templateData['data']);
