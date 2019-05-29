@@ -204,6 +204,7 @@ class Output extends Module
 						$template = substr($t, 2);
 						$sub_html = $this->renderTemplate($template, [
 							'cache' => $options['cache'],
+							'request-bound' => $options['request-bound'],
 							'return' => true,
 							'module' => $options['module'],
 						]);
@@ -211,6 +212,7 @@ class Output extends Module
 						$template = substr($t, 3);
 						$sub_html = $this->renderTemplate($template, [
 							'cache' => false,
+							'request-bound' => $options['request-bound'],
 							'return' => true,
 						]);
 					} elseif (strpos($t, 'tr:') === 0) { // Request bound template
@@ -426,6 +428,10 @@ class Output extends Module
 
 		if (isset($this->cache[$file]))
 			unset($this->cache[$file]);
+
+		$cacheFiles = glob(INCLUDE_PATH . 'model' . DIRECTORY_SEPARATOR . 'Output' . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'cache' . $file . '*');
+		foreach ($cacheFiles as $cacheFile)
+			unlink($cacheFile);
 
 		$this->editedCache = true;
 	}
