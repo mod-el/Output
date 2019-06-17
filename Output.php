@@ -2,6 +2,7 @@
 
 use Model\Core\Autoloader;
 use Model\Core\Module;
+use Model\ORM\Element;
 
 class Output extends Module
 {
@@ -99,7 +100,6 @@ class Output extends Module
 					'module' => $this->options['template-module-layout'] ?: $this->options['template-module'],
 					'cache' => $this->options['cacheHeader'],
 					'request-bound' => $this->options['bindHeaderToRequest'],
-					'element' => $this->model->element,
 				]);
 			}
 		}
@@ -125,7 +125,6 @@ class Output extends Module
 					'module' => $this->options['template-module-layout'] ?: $this->options['template-module'],
 					'cache' => $this->options['cacheFooter'],
 					'request-bound' => $this->options['bindFooterToRequest'],
-					'element' => $this->model->element,
 				]);
 			}
 		}
@@ -183,12 +182,12 @@ class Output extends Module
 				if (isset($cache[$file['path']]) and $file['modified'] !== $cache[$file['path']]['modified'])
 					$this->removeFileFromCache($file['path']);
 
-				$templateData = $this->makeTemplateHtml($file['path']);
+				$templateData = $this->makeTemplateHtml($file['path'], $options['element']);
 				$html = $templateData['html'];
 				$this->saveFileInCache($file, $cacheKey, $templateData['html'], $templateData['data']);
 			}
 		} else {
-			$templateData = $this->makeTemplateHtml($file['path']);
+			$templateData = $this->makeTemplateHtml($file['path'], $options['element']);
 			$html = $templateData['html'];
 		}
 
@@ -209,7 +208,7 @@ class Output extends Module
 							'cache' => $options['cache'],
 							'request-bound' => $options['request-bound'],
 							'return' => true,
-							'module' => $options['module'],
+							'element' => $options['element'],
 						]);
 					} elseif (strpos($t, 'td:') === 0) { // Dynamic (non-cached) template
 						$template = substr($t, 3);
@@ -217,6 +216,7 @@ class Output extends Module
 							'cache' => false,
 							'request-bound' => $options['request-bound'],
 							'return' => true,
+							'element' => $options['element'],
 						]);
 					} elseif (strpos($t, 'tr:') === 0) { // Request bound template
 						$template = substr($t, 3);
@@ -224,6 +224,7 @@ class Output extends Module
 							'cache' => $options['cache'],
 							'request-bound' => true,
 							'return' => true,
+							'element' => $options['element'],
 						]);
 					} elseif (strpos($t, 'el:') === 0 and $options['element'] !== null) { // Element data
 						$dato = substr($t, 3);
@@ -311,15 +312,22 @@ class Output extends Module
 	 * Parses a template file and returns its output, keeping track of which table were used (and if a language-linked action was done)
 	 *
 	 * @param string $template
+	 * @param Element|null $element
 	 * @return array
 	 */
-	private function makeTemplateHtml(string $template): array
+	private function makeTemplateHtml(string $template, ?Element $element = null): array
 	{
 		if (!isset($this->renderingsMetaData[$template])) {
 			$this->renderingsMetaData[$template] = [
 				'tables' => [],
 				'language-bound' => false,
 			];
+
+			if ($element) {
+				$table = $element->getTable();
+				if ($table)
+					$this->renderingsMetaData[$template]['tables'][] = $table;
+			}
 		}
 
 		$html = (function ($template) {
