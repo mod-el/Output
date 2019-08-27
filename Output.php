@@ -72,6 +72,13 @@ class Output extends Module
 			}
 		});
 
+		$this->model->on('Router_gettingUrl', function ($data) {
+			if ($this->model->isLoaded('Multilang')) {
+				foreach ($this->renderingsMetaData as $template => $metadata)
+					$this->renderingsMetaData[$template]['language-bound'] = true;
+			}
+		});
+
 		$this->model->on('Db_changedTable', function ($data) {
 			$this->changedTable($data['table']);
 		});
