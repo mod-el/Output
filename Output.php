@@ -57,17 +57,13 @@ class Output extends Module
 	{
 		$this->model->on('Db_select', function ($data) {
 			foreach ($this->renderingsMetaData as $template => $metadata) {
-				if (!in_array($data['table'], $metadata['tables']))
-					$this->renderingsMetaData[$template]['tables'][] = $data['table'];
-			}
+				$linkedTables = $this->model->_Db->getLinkedTables($data['table']);
+				foreach ($linkedTables as $table) {
+					if (!in_array($table, $metadata['tables']))
+						$this->renderingsMetaData[$template]['tables'][] = $table;
 
-			if ($this->model->isLoaded('Multilang') and array_key_exists($data['table'], $this->model->_Multilang->tables)) {
-				foreach ($this->renderingsMetaData as $template => $metadata) {
-					$this->renderingsMetaData[$template]['language-bound'] = true;
-
-					$textsTable = $data['table'] . $this->model->_Multilang->tables[$data['table']]['suffix'];
-					if (!in_array($textsTable, $metadata['tables']))
-						$this->renderingsMetaData[$template]['tables'][] = $textsTable;
+					if ($this->model->isLoaded('Multilang') and array_key_exists($table, $this->model->_Multilang->tables))
+						$this->renderingsMetaData[$template]['language-bound'] = true;
 				}
 			}
 		});
@@ -331,9 +327,11 @@ class Output extends Module
 			];
 
 			if ($element) {
-				$table = $element->getTable();
-				if ($table)
-					$this->renderingsMetaData[$template]['tables'][] = $table;
+				$linkedTables = $this->model->_Db->getLinkedTables($element->getTable());
+				foreach ($linkedTables as $table) {
+					if (!in_array($table, $this->renderingsMetaData[$template]['tables']))
+						$this->renderingsMetaData[$template]['tables'][] = $table;
+				}
 			}
 		}
 
