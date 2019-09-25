@@ -36,7 +36,7 @@ class Output extends Module
 		'messages' => [],
 	];
 	/** @var array */
-	private $injectedArr = [];
+	private $injectedGlobal = [];
 
 	/** @var array */
 	private $css = [];
@@ -154,6 +154,7 @@ class Output extends Module
 			'element' => null,
 			'module' => null,
 			'return' => false,
+			'inject' => [],
 		], $options);
 
 		if (!$this->options['cache']) // Main switch for the cache
@@ -178,6 +179,7 @@ class Output extends Module
 				$requestKey = $this->getRequestKey();
 				$cacheKey .= '.' . $requestKey;
 			}
+			$cacheKey .= '.' . md5(json_encode($options['inject']));
 
 			if (isset($cache[$file['path']]) and $file['modified'] === $cache[$file['path']]['modified'] and $this->cacheFileExists($cacheKey, $cache[$file['path']])) {
 				$html = $this->getHtmlFromCache($cacheKey, $cache[$file['path']]);
@@ -185,58 +187,78 @@ class Output extends Module
 				if (isset($cache[$file['path']]) and $file['modified'] !== $cache[$file['path']]['modified'])
 					$this->removeFileFromCache($file['path']);
 
-				$templateData = $this->makeTemplateHtml($file['path'], $options['element']);
+				$templateData = $this->makeTemplateHtml($file['path'], $options['element'], $options['inject']);
 				$html = $templateData['html'];
 				$this->saveFileInCache($file, $cacheKey, $templateData['html'], $templateData['data']);
 			}
 		} else {
-			$templateData = $this->makeTemplateHtml($file['path'], $options['element']);
+			$templateData = $this->makeTemplateHtml($file['path'], $options['element'], $options['inject']);
 			$html = $templateData['html'];
 		}
 
 		if (strpos($html, '[:') !== false) {
 			preg_match_all('/\[:([^\]]+?)\]/', $html, $tokens);
-			foreach ($tokens[1] as $t) {
+			foreach ($tokens[1] as $token) {
 				$sub_html = false;
-				if ($t === 'messages') { // Messages
+				if ($token === 'messages') { // Messages
 					$sub_html = $this->getMessagesHtml();
-				} elseif ($t === 'head' or $t === 'foot') { // Head and Foot
-					$sub_html = $this->renderBasicSection($t, true);
+				} elseif ($token === 'head' or $token === 'foot') { // Head and Foot
+					$sub_html = $this->renderBasicSection($token, true);
 				} elseif ($this->options['template-engine']) {
-					if (isset($this->options[$t])) { // Option
-						$sub_html = $this->options[$t];
-					} elseif (strpos($t, 't:') === 0) { // Template
-						$template = substr($t, 2);
-						$sub_html = $this->renderTemplate($template, [
-							'cache' => $options['cache'],
-							'request-bound' => $options['request-bound'],
-							'return' => true,
-							'element' => $options['element'],
-						]);
-					} elseif (strpos($t, 'td:') === 0) { // Dynamic (non-cached) template
-						$template = substr($t, 3);
-						$sub_html = $this->renderTemplate($template, [
-							'cache' => false,
-							'request-bound' => $options['request-bound'],
-							'return' => true,
-							'element' => $options['element'],
-						]);
-					} elseif (strpos($t, 'tr:') === 0) { // Request bound template
-						$template = substr($t, 3);
-						$sub_html = $this->renderTemplate($template, [
-							'cache' => $options['cache'],
-							'request-bound' => true,
-							'return' => true,
-							'element' => $options['element'],
-						]);
-					} elseif (strpos($t, 'el:') === 0 and $options['element'] !== null) { // Element data
-						$dato = substr($t, 3);
+					if (isset($this->options[$token])) { // Option
+						$sub_html = $this->options[$token];
+					} elseif (strpos($token, 'el:') === 0 and $options['element'] !== null) { // Element data
+						$dato = substr($token, 3);
 						$sub_html = $options['element'][$dato];
+					} else {
+						$t = explode('|', $token);
+						$injected_vars = $t[1] ?? null;
+						$t = $t[0];
+
+						if ($injected_vars) {
+							$injected_vars_raw = explode(',', $injected_vars);
+							$injected_vars = [];
+							foreach ($injected_vars_raw as $var) {
+								$var = explode('=', $var);
+								$injected_vars[$var[0]] = $var[1];
+							}
+						} else {
+							$injected_vars = [];
+						}
+
+						if (strpos($t, 't:') === 0) { // Template
+							$template = substr($t, 2);
+							$sub_html = $this->renderTemplate($template, [
+								'cache' => $options['cache'],
+								'request-bound' => $options['request-bound'],
+								'return' => true,
+								'element' => $options['element'],
+								'inject' => $injected_vars,
+							]);
+						} elseif (strpos($t, 'td:') === 0) { // Dynamic (non-cached) template
+							$template = substr($t, 3);
+							$sub_html = $this->renderTemplate($template, [
+								'cache' => false,
+								'request-bound' => $options['request-bound'],
+								'return' => true,
+								'element' => $options['element'],
+								'inject' => $injected_vars,
+							]);
+						} elseif (strpos($t, 'tr:') === 0) { // Request bound template
+							$template = substr($t, 3);
+							$sub_html = $this->renderTemplate($template, [
+								'cache' => $options['cache'],
+								'request-bound' => true,
+								'return' => true,
+								'element' => $options['element'],
+								'inject' => $injected_vars,
+							]);
+						}
 					}
 				}
 
 				if ($sub_html !== false)
-					$html = str_replace('[:' . $t . ']', $sub_html, $html);
+					$html = str_replace('[:' . $token . ']', $sub_html, $html);
 			}
 		}
 		$html = str_replace('[\\:', '[:', $html);
@@ -316,9 +338,10 @@ class Output extends Module
 	 *
 	 * @param string $template
 	 * @param Element|null $element
+	 * @param array $injected
 	 * @return array
 	 */
-	private function makeTemplateHtml(string $template, ?Element $element = null): array
+	private function makeTemplateHtml(string $template, ?Element $element = null, array $injected = []): array
 	{
 		if (!isset($this->renderingsMetaData[$template])) {
 			$this->renderingsMetaData[$template] = [
@@ -335,8 +358,10 @@ class Output extends Module
 			}
 		}
 
-		$html = (function ($template) {
-			foreach ($this->injectedArr as $injName => $injObj)
+		$injected = array_merge($this->injectedGlobal, $injected);
+
+		$html = (function ($template) use ($injected) {
+			foreach ($injected as $injName => $injObj)
 				${$injName} = $injObj;
 
 			ob_start();
@@ -533,7 +558,7 @@ $this->cache = ' . var_export($this->cache, true) . ';
 		if (!preg_match('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*$/', $name))
 			$this->model->error('Injected variable "' . entities($name) . '" is not a valid name for a variable.');
 
-		$this->injectedArr[$name] = $var;
+		$this->injectedGlobal[$name] = $var;
 	}
 
 	/**
@@ -543,9 +568,9 @@ $this->cache = ' . var_export($this->cache, true) . ';
 	public function injected(?string $name = null)
 	{
 		if ($name === null) {
-			return $this->injectedArr;
+			return $this->injectedGlobal;
 		} else {
-			return $this->injectedArr[$name] ?? null;
+			return $this->injectedGlobal[$name] ?? null;
 		}
 	}
 
