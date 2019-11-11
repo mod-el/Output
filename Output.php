@@ -813,6 +813,7 @@ $this->cache = ' . var_export($this->cache, true) . ';
 				}
 				?>
 				<script type="text/javascript">
+					/* Backward compatibility */
 					var base_path = '<?=PATH?>';
 					var absolute_path = '<?=$this->model->prefix()?>';
 					var absolute_url = <?=json_encode($this->model->getRequest())?>;
