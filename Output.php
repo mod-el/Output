@@ -179,6 +179,8 @@ class Output extends Module
 				$requestKey = $this->getRequestKey();
 				$cacheKey .= '.' . $requestKey;
 			}
+			if (DEBUG_MODE)
+				$cacheKey .= '.DEBUG';
 			$cacheKey .= '.' . md5(json_encode($options['inject']));
 
 			if (isset($cache[$file['path']]) and $file['modified'] === $cache[$file['path']]['modified'] and $this->cacheFileExists($cacheKey, $cache[$file['path']])) {
