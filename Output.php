@@ -205,7 +205,7 @@ class Output extends Module
 				if ($token === 'messages') { // Messages
 					$sub_html = $this->getMessagesHtml();
 				} elseif ($token === 'head' or $token === 'foot') { // Head and Foot
-					$sub_html = $this->renderBasicSection($token, true);
+					$sub_html = $this->renderBasicSection($token, $options['cache']);
 				} elseif ($this->options['template-engine']) {
 					if (isset($this->options[$token])) { // Option
 						$sub_html = $this->options[$token];
@@ -360,16 +360,26 @@ class Output extends Module
 			}
 		}
 
-		$injected = array_merge($this->injectedGlobal, $injected);
-
-		$html = (function ($template) use ($injected) {
-			foreach ($injected as $injName => $injObj)
-				${$injName} = $injObj;
-
+		if ($template === 'head-section') {
 			ob_start();
-			include($template);
-			return ob_get_clean();
-		})($template);
+			$modules = $this->model->allModules();
+			foreach ($modules as $m) {
+				if (is_object($m))
+					$m->headings();
+			}
+			$html = ob_get_clean();
+		} else {
+			$injected = array_merge($this->injectedGlobal, $injected);
+
+			$html = (function ($template) use ($injected) {
+				foreach ($injected as $injName => $injObj)
+					${$injName} = $injObj;
+
+				ob_start();
+				include($template);
+				return ob_get_clean();
+			})($template);
+		}
 
 		$ret = [
 			'html' => $html,
@@ -586,9 +596,8 @@ $this->cache = ' . var_export($this->cache, true) . ';
 		$cache = $this->getCacheData();
 
 		foreach ($cache as $file => $data) {
-			if (in_array($table, $data['tables'])) {
+			if (in_array($table, $data['tables']))
 				$this->removeFileFromCache($file);
-			}
 		}
 	}
 
@@ -793,25 +802,40 @@ $this->cache = ' . var_export($this->cache, true) . ';
 	 * Echoes or returns the html for the "head" or "foot" section of the page
 	 *
 	 * @param string $type
-	 * @param bool $return
+	 * @param bool $useCache
 	 * @return string
 	 * @throws \Model\Core\Exception
 	 */
-	private function renderBasicSection(string $type, bool $return = true)
+	private function renderBasicSection(string $type, bool $useCache)
 	{
-		if ($return)
-			ob_start();
+		ob_start();
 
 		switch ($type) {
 			case 'head':
 				if (!$this->model->isLoaded('Seo'))
 					echo '<title>' . APP_NAME . '</title>
 ';
+				$fakeHeadFileName = 'head-section';
 
-				$modules = $this->model->allModules();
-				foreach ($modules as $m) {
-					if (is_object($m))
-						$m->headings();
+				if ($useCache) {
+					$cache = $this->getCacheData();
+
+					$cacheKey = $fakeHeadFileName . '.' . $this->getRequestKey();
+					if (DEBUG_MODE)
+						$cacheKey .= '.DEBUG';
+
+					if (isset($cache[$fakeHeadFileName]) and $this->cacheFileExists($cacheKey, $cache[$fakeHeadFileName])) {
+						echo $this->getHtmlFromCache($cacheKey, $cache[$fakeHeadFileName]);
+					} else {
+						if (isset($cache[$fakeHeadFileName]))
+							$this->removeFileFromCache($fakeHeadFileName);
+
+						$templateData = $this->makeTemplateHtml($fakeHeadFileName, $this->model->element);
+						echo $templateData['html'];
+						$this->saveFileInCache(['path' => $fakeHeadFileName, 'modified' => null], $cacheKey, $templateData['html'], $templateData['data']);
+					}
+				} else {
+					echo $this->makeTemplateHtml($fakeHeadFileName, $this->model->element)['html'];
 				}
 				?>
 				<script type="text/javascript">
@@ -829,8 +853,7 @@ $this->cache = ' . var_export($this->cache, true) . ';
 			case 'foot':
 				break;
 			default:
-				if ($return)
-					ob_clean();
+				ob_clean();
 
 				$this->model->error('Unknown basic section type.');
 				break;
@@ -866,10 +889,8 @@ $this->cache = ' . var_export($this->cache, true) . ';
 			<?php
 		}
 
-		if ($return) {
-			$html = ob_get_clean();
-			return $html;
-		}
+		$html = ob_get_clean();
+		return $html;
 	}
 
 	/**
