@@ -674,6 +674,8 @@ $this->cache = ' . var_export($this->cache, true) . ';
 			'custom' => true,
 			'head' => true,
 			'cacheable' => true,
+			'defer' => false,
+			'async' => false,
 		], $options);
 		if (!is_array($options['with']))
 			$options['with'] = [$options['with']];
@@ -743,6 +745,7 @@ $this->cache = ' . var_export($this->cache, true) . ';
 			'custom' => true,
 			'head' => true,
 			'cacheable' => true,
+			'defer' => false,
 		], $options);
 		if (!is_array($options['with']))
 			$options['with'] = [$options['with']];
@@ -860,32 +863,39 @@ $this->cache = ' . var_export($this->cache, true) . ';
 		}
 
 		foreach ($this->css as $file) {
-			if (isset($this->cssOptions[$file])) {
-				if ($this->cssOptions[$file]['with'] and !in_array($this->model->leadingModule, $this->cssOptions[$file]['with']))
-					continue;
-				if (in_array($this->model->leadingModule, $this->cssOptions[$file]['but']))
-					continue;
-			}
+			if ($this->cssOptions[$file]['with'] and !in_array($this->model->leadingModule, $this->cssOptions[$file]['with']))
+				continue;
+			if (in_array($this->model->leadingModule, $this->cssOptions[$file]['but']))
+				continue;
 			if ((!$this->cssOptions[$file]['head'] and $type === 'head') or ($this->cssOptions[$file]['head'] and $type === 'foot'))
 				continue;
-			?>
-			<link rel="stylesheet" type="text/css"
-			      href="<?= strtolower(substr($file, 0, 4)) == 'http' ? $file : PATH . $file ?>"/>
-			<?php
+
+			$filePath = strtolower(substr($file, 0, 4)) == 'http' ? $file : PATH . $file;
+			if ($this->cssOptions[$file]['defer']) {
+				?>
+				<link rel="preload" href="<?= $filePath ?>" as="style" onload="this.onload=null;this.rel='stylesheet'"/>
+				<noscript>
+					<link rel="stylesheet" href="<?= $filePath ?>"/>
+				</noscript>
+				<?php
+			} else {
+				?>
+				<link rel="stylesheet" type="text/css" href="<?= $filePath ?>"/>
+				<?php
+			}
 		}
 
 		foreach ($this->js as $file) {
-			if (isset($this->jsOptions[$file])) {
-				if ($this->jsOptions[$file]['with'] and !in_array($this->model->leadingModule, $this->jsOptions[$file]['with']))
-					continue;
-				if (in_array($this->model->leadingModule, $this->jsOptions[$file]['but']))
-					continue;
-			}
+			if ($this->jsOptions[$file]['with'] and !in_array($this->model->leadingModule, $this->jsOptions[$file]['with']))
+				continue;
+			if (in_array($this->model->leadingModule, $this->jsOptions[$file]['but']))
+				continue;
 			if ((!$this->jsOptions[$file]['head'] and $type === 'head') or ($this->jsOptions[$file]['head'] and $type === 'foot'))
 				continue;
+
+			$filePath = strtolower(substr($file, 0, 4)) == 'http' ? $file : PATH . $file;
 			?>
-			<script type="text/javascript"
-			        src="<?= strtolower(substr($file, 0, 4)) == 'http' ? $file : PATH . $file ?>"></script>
+			<script type="text/javascript" src="<?= $filePath ?>"<?= $this->jsOptions[$file]['defer'] ? ' defer' : '' ?><?= $this->jsOptions[$file]['async'] ? ' async' : '' ?>></script>
 			<?php
 		}
 
