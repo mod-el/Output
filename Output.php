@@ -714,21 +714,31 @@ $this->cache = ' . var_export($this->cache, true) . ';
 	}
 
 	/**
-	 * @param bool $onlyCacheable
+	 * @param bool $forCache
 	 * @return array
 	 */
-	public function getJSList(bool $onlyCacheable = false): array
+	public function getJSList(bool $forCache = false, ?string $type = null): array
 	{
-		if ($onlyCacheable) {
-			$arr = [];
+		$list = [];
+		if ($forCache) {
 			foreach ($this->js as $js) {
 				if ($this->jsOptions[$js]['cacheable'])
-					$arr[] = $js;
+					$list[] = $js;
 			}
-			return $arr;
 		} else {
-			return $this->js;
+			foreach ($this->js as $file) {
+				if ($this->jsOptions[$file]['with'] and !in_array($this->model->leadingModule, $this->jsOptions[$file]['with']))
+					continue;
+				if (in_array($this->model->leadingModule, $this->jsOptions[$file]['but']))
+					continue;
+				if ($type !== null and ((!$this->jsOptions[$file]['head'] and $type === 'head') or ($this->jsOptions[$file]['head'] and $type === 'foot')))
+					continue;
+
+				$list[] = $file;
+			}
 		}
+
+		return $list;
 	}
 
 	/**
@@ -784,21 +794,32 @@ $this->cache = ' . var_export($this->cache, true) . ';
 	}
 
 	/**
-	 * @param bool $onlyCacheable
+	 * @param bool $forCache
+	 * @param string|null $type
 	 * @return array
 	 */
-	public function getCSSList(bool $onlyCacheable = false): array
+	public function getCSSList(bool $forCache = false, ?string $type = null): array
 	{
-		if ($onlyCacheable) {
-			$arr = [];
+		$list = [];
+		if ($forCache) {
 			foreach ($this->css as $css) {
 				if ($this->cssOptions[$css]['cacheable'])
-					$arr[] = $css;
+					$list[] = $css;
 			}
-			return $arr;
 		} else {
-			return $this->css;
+			foreach ($this->css as $file) {
+				if ($this->cssOptions[$file]['with'] and !in_array($this->model->leadingModule, $this->cssOptions[$file]['with']))
+					continue;
+				if (in_array($this->model->leadingModule, $this->cssOptions[$file]['but']))
+					continue;
+				if ($type !== null and ((!$this->cssOptions[$file]['head'] and $type === 'head') or ($this->cssOptions[$file]['head'] and $type === 'foot')))
+					continue;
+
+				$list[] = $file;
+			}
 		}
+
+		return $list;
 	}
 
 	/**
@@ -862,45 +883,96 @@ $this->cache = ' . var_export($this->cache, true) . ';
 				break;
 		}
 
-		foreach ($this->css as $file) {
-			if ($this->cssOptions[$file]['with'] and !in_array($this->model->leadingModule, $this->cssOptions[$file]['with']))
-				continue;
-			if (in_array($this->model->leadingModule, $this->cssOptions[$file]['but']))
-				continue;
-			if ((!$this->cssOptions[$file]['head'] and $type === 'head') or ($this->cssOptions[$file]['head'] and $type === 'foot'))
-				continue;
+		$config = $this->retrieveConfig();
 
-			$filePath = strtolower(substr($file, 0, 4)) == 'http' ? $file : PATH . $file;
-			if ($this->cssOptions[$file]['defer']) {
-				?>
-				<link rel="preload" href="<?= $filePath ?>" as="style" onload="this.onload=null;this.rel='stylesheet'"/>
-				<noscript>
-					<link rel="stylesheet" href="<?= $filePath ?>"/>
-				</noscript>
-				<?php
-			} else {
-				?>
-				<link rel="stylesheet" type="text/css" href="<?= $filePath ?>"/>
-				<?php
+		$cssList = $this->getCSSList(false, $type);
+		$jsList = $this->getJSList(false, $type);
+
+		if (!$config['minify-css'] or (DEBUG_MODE and !isset($_COOKIE['ZK_MINIFY']))) {
+			foreach ($cssList as $file)
+				$this->renderCss($file, $this->cssOptions[$file] ?? []);
+		} else {
+			$toMinify = [];
+			foreach ($cssList as $file) {
+				if (strtolower(substr($file, 0, 4)) == 'http' or !$this->cssOptions[$file]['cacheable']) {
+					$this->renderCss($file);
+				} else {
+					$k = (int)$this->cssOptions[$file]['defer'];
+					if (!isset($toMinify[$k])) {
+						$toMinify[$k] = [
+							'defer' => $this->cssOptions[$file]['defer'],
+							'files' => [],
+						];
+					}
+					$toMinify[$k]['files'][] = $file;
+				}
+			}
+
+			foreach ($toMinify as $singleToMinify) {
+				sort($singleToMinify['files']);
+
+				$minifiedFilename = sha1(implode('', $singleToMinify['files']));
+				$minifiedFilePath = 'model' . DIRECTORY_SEPARATOR . 'Output' . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'minified' . DIRECTORY_SEPARATOR . $minifiedFilename . '.css';
+				if (!file_exists(INCLUDE_PATH . $minifiedFilePath)) {
+					$minifier = new \MatthiasMullie\Minify\CSS();
+					foreach ($singleToMinify['files'] as $file)
+						$minifier->add(parse_url(INCLUDE_PATH . $file)['path']);
+					$minifier->minify($minifiedFilePath);
+				}
+
+				$this->renderCss($minifiedFilePath, [
+					'defer' => $singleToMinify['defer'],
+				]);
 			}
 		}
 
-		foreach ($this->js as $file) {
-			if ($this->jsOptions[$file]['with'] and !in_array($this->model->leadingModule, $this->jsOptions[$file]['with']))
-				continue;
-			if (in_array($this->model->leadingModule, $this->jsOptions[$file]['but']))
-				continue;
-			if ((!$this->jsOptions[$file]['head'] and $type === 'head') or ($this->jsOptions[$file]['head'] and $type === 'foot'))
-				continue;
-
-			$filePath = strtolower(substr($file, 0, 4)) == 'http' ? $file : PATH . $file;
-			?>
-			<script type="text/javascript" src="<?= $filePath ?>"<?= $this->jsOptions[$file]['defer'] ? ' defer' : '' ?><?= $this->jsOptions[$file]['async'] ? ' async' : '' ?>></script>
-			<?php
-		}
+		foreach ($jsList as $file)
+			$this->renderJs($file, $this->jsOptions[$file] ?? []);
 
 		$html = ob_get_clean();
 		return $html;
+	}
+
+	/**
+	 * @param string $file
+	 * @param array $options
+	 */
+	private function renderJs(string $file, array $options = [])
+	{
+		$options = array_merge([
+			'async' => false,
+			'defer' => false,
+		], $options);
+
+		$filePath = strtolower(substr($file, 0, 4)) === 'http' ? $file : PATH . $file;
+		?>
+		<script type="text/javascript" src="<?= $filePath ?>"<?= $options['defer'] ? ' defer' : '' ?><?= $options['async'] ? ' async' : '' ?>></script>
+		<?php
+	}
+
+	/**
+	 * @param string $file
+	 * @param array $options
+	 */
+	private function renderCss(string $file, array $options = [])
+	{
+		$options = array_merge([
+			'defer' => false,
+		], $options);
+
+		$filePath = strtolower(substr($file, 0, 4)) === 'http' ? $file : PATH . $file;
+		if ($options['defer']) {
+			?>
+			<link rel="preload" href="<?= $filePath ?>" as="style" onload="this.onload=null;this.rel='stylesheet'"/>
+			<noscript>
+				<link rel="stylesheet" href="<?= $filePath ?>"/>
+			</noscript>
+			<?php
+		} else {
+			?>
+			<link rel="stylesheet" type="text/css" href="<?= $filePath ?>"/>
+			<?php
+		}
 	}
 
 	/**

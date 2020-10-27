@@ -1,9 +1,9 @@
 {
 	"name": "Output",
-	"description": "Templating engine with cache management",
-	"version": "0.3.4",
+	"description": "Templating engine with cache management (install matthiasmullie/minify for minify features)",
+	"version": "0.4.0",
 	"dependencies": {
-		"Core": ">=2.8.3"
+		"Core": ">=2.10.0"
 	},
 	"file-types": {
 		"template": {

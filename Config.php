@@ -9,6 +9,14 @@ class Config extends Module_Config
 	 */
 	protected function assetsList()
 	{
+		$this->addAsset('config', 'config.php', function () {
+			return '<?php
+$config = ' . var_export([
+					'minify-css' => false,
+					'minify-js' => false,
+				], true) . ";\n";
+		});
+
 		$this->addAsset('data', 'cache' . DIRECTORY_SEPARATOR . 'cache.php', function () {
 			return '<?php
 $this->cache = [];
@@ -23,10 +31,18 @@ $this->cache = [];
 	 */
 	function makeCache(): bool
 	{
-		return (
+		$allDone = (
 			(bool)file_put_contents(INCLUDE_PATH . 'model' . DIRECTORY_SEPARATOR . 'Output' . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'cache.php', "<?php\n\$this->cache = [];\n")
 			and $this->delTree(INCLUDE_PATH . 'model' . DIRECTORY_SEPARATOR . 'Output' . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'cache')
+			and $this->delTree(INCLUDE_PATH . 'model' . DIRECTORY_SEPARATOR . 'Output' . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'minified')
 		);
+
+		if (!$allDone)
+			return false;
+
+		mkdir(INCLUDE_PATH . 'model' . DIRECTORY_SEPARATOR . 'Output' . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'minified', 0777, true);
+
+		return true;
 	}
 
 	/**
