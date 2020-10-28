@@ -886,7 +886,6 @@ $this->cache = ' . var_export($this->cache, true) . ';
 		$config = $this->retrieveConfig();
 
 		$cssList = $this->getCSSList(false, $type);
-		$jsList = $this->getJSList(false, $type);
 
 		if (!$config['minify-css'] or (DEBUG_MODE and !isset($_COOKIE['ZK_MINIFY']))) {
 			foreach ($cssList as $file)
@@ -895,7 +894,7 @@ $this->cache = ' . var_export($this->cache, true) . ';
 			$toMinify = [];
 			foreach ($cssList as $file) {
 				if (strtolower(substr($file, 0, 4)) == 'http' or !$this->cssOptions[$file]['cacheable']) {
-					$this->renderCss($file);
+					$this->renderCss($file, $this->cssOptions[$file] ?? []);
 				} else {
 					$k = (int)$this->cssOptions[$file]['defer'];
 					if (!isset($toMinify[$k])) {
@@ -926,8 +925,47 @@ $this->cache = ' . var_export($this->cache, true) . ';
 			}
 		}
 
-		foreach ($jsList as $file)
-			$this->renderJs($file, $this->jsOptions[$file] ?? []);
+		$jsList = $this->getJSList(false, $type);
+
+		if (!$config['minify-js'] or (DEBUG_MODE and !isset($_COOKIE['ZK_MINIFY']))) {
+			foreach ($jsList as $file)
+				$this->renderJs($file, $this->jsOptions[$file] ?? []);
+		} else {
+			$toMinify = [];
+			foreach ($jsList as $file) {
+				if (strtolower(substr($file, 0, 4)) == 'http' or !$this->jsOptions[$file]['cacheable']) {
+					$this->renderJs($file);
+				} else {
+					$k = (int)$this->jsOptions[$file]['defer'].'-'.(int)$this->jsOptions[$file]['async'];
+					if (!isset($toMinify[$k])) {
+						$toMinify[$k] = [
+							'defer' => $this->jsOptions[$file]['defer'],
+							'async' => $this->jsOptions[$file]['async'],
+							'files' => [],
+						];
+					}
+					$toMinify[$k]['files'][] = $file;
+				}
+			}
+
+			foreach ($toMinify as $singleToMinify) {
+				sort($singleToMinify['files']);
+
+				$minifiedFilename = sha1(implode('', $singleToMinify['files']));
+				$minifiedFilePath = 'model' . DIRECTORY_SEPARATOR . 'Output' . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'minified' . DIRECTORY_SEPARATOR . $minifiedFilename . '.js';
+				if (!file_exists(INCLUDE_PATH . $minifiedFilePath)) {
+					$minifier = new \MatthiasMullie\Minify\JS();
+					foreach ($singleToMinify['files'] as $file)
+						$minifier->add(parse_url(INCLUDE_PATH . $file)['path']);
+					$minifier->minify($minifiedFilePath);
+				}
+
+				$this->renderJs($minifiedFilePath, [
+					'defer' => $singleToMinify['defer'],
+					'async' => $singleToMinify['async'],
+				]);
+			}
+		}
 
 		$html = ob_get_clean();
 		return $html;
