@@ -682,6 +682,9 @@ $this->cache = ' . var_export($this->cache, true) . ';
 		if (!is_array($options['but']))
 			$options['but'] = [$options['but']];
 
+		if (strtolower(pathinfo(parse_url($js)['path'], PATHINFO_EXTENSION)) !== 'js')
+			$options['cacheable'] = false;
+
 		if (!in_array($js, $this->js))
 			$this->js[] = $js;
 		$this->jsOptions[$js] = $options;
@@ -893,7 +896,7 @@ $this->cache = ' . var_export($this->cache, true) . ';
 		} else {
 			$toMinify = [];
 			foreach ($cssList as $file) {
-				if (strtolower(substr($file, 0, 4)) == 'http' or !$this->cssOptions[$file]['cacheable']) {
+				if (strtolower(substr($file, 0, 4)) === 'http' or !$this->cssOptions[$file]['cacheable']) {
 					$this->renderCss($file, $this->cssOptions[$file] ?? []);
 				} else {
 					$k = (int)$this->cssOptions[$file]['defer'];
@@ -933,10 +936,10 @@ $this->cache = ' . var_export($this->cache, true) . ';
 		} else {
 			$toMinify = [];
 			foreach ($jsList as $file) {
-				if (strtolower(substr($file, 0, 4)) == 'http' or !$this->jsOptions[$file]['cacheable']) {
+				if (strtolower(substr($file, 0, 4)) === 'http' or !$this->jsOptions[$file]['cacheable']) {
 					$this->renderJs($file);
 				} else {
-					$k = (int)$this->jsOptions[$file]['defer'].'-'.(int)$this->jsOptions[$file]['async'];
+					$k = (int)$this->jsOptions[$file]['defer'] . '-' . (int)$this->jsOptions[$file]['async'];
 					if (!isset($toMinify[$k])) {
 						$toMinify[$k] = [
 							'defer' => $this->jsOptions[$file]['defer'],
