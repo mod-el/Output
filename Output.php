@@ -911,9 +911,10 @@ $this->cache = ' . var_export($this->cache, true) . ';
 			}
 
 			foreach ($toMinify as $singleToMinify) {
-				sort($singleToMinify['files']);
+				$filesNames = $singleToMinify['files'];
+				sort($filesNames);
 
-				$minifiedFilename = sha1(implode('', $singleToMinify['files']));
+				$minifiedFilename = sha1(implode('', $filesNames));
 				$minifiedFilePath = 'model' . DIRECTORY_SEPARATOR . 'Output' . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'minified' . DIRECTORY_SEPARATOR . $minifiedFilename . '.css';
 				if (!file_exists(INCLUDE_PATH . $minifiedFilePath)) {
 					$minifier = new \MatthiasMullie\Minify\CSS();
@@ -952,9 +953,10 @@ $this->cache = ' . var_export($this->cache, true) . ';
 			}
 
 			foreach ($toMinify as $singleToMinify) {
-				sort($singleToMinify['files']);
+				$filesNames = $singleToMinify['files'];
+				sort($filesNames);
 
-				$minifiedFilename = sha1(implode('', $singleToMinify['files']));
+				$minifiedFilename = sha1(implode('', $filesNames));
 				$minifiedFilePath = 'model' . DIRECTORY_SEPARATOR . 'Output' . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'minified' . DIRECTORY_SEPARATOR . $minifiedFilename . '.js';
 				if (!file_exists(INCLUDE_PATH . $minifiedFilePath)) {
 					$minifier = new \MatthiasMullie\Minify\JS();
