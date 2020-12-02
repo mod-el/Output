@@ -874,8 +874,6 @@ $this->cache = ' . var_export($this->cache, true) . ';
 					var PATHBASE = '<?=PATH?>';
 					var PATH = '<?=$this->model->prefix()?>';
 					var REQUEST = <?=json_encode($this->model->getRequest())?>;
-
-					var JS_LOADING_PROMISES = [];
 				</script>
 				<?php
 				break;
@@ -970,16 +968,6 @@ $this->cache = ' . var_export($this->cache, true) . ';
 			}
 		}
 
-		if ($type === 'foot') {
-			?>
-			<script>
-				Promise.all(JS_LOADING_PROMISES).then(function () {
-					window.dispatchEvent(new Event('js-loaded'));
-				});
-			</script>
-			<?php
-		}
-
 		$html = ob_get_clean();
 		return $html;
 	}
@@ -996,34 +984,9 @@ $this->cache = ' . var_export($this->cache, true) . ';
 		], $options);
 
 		$filePath = strtolower(substr($file, 0, 4)) === 'http' ? $file : PATH . $file;
-		if ($options['defer']) { // Browsers defer doesn't work as intended, I build a custom one
-			$jsvarname = sha1($filePath);
-			?>
-			<script>
-				let js_<?=$jsvarname?>_promise = new Promise(function (resolve) {
-					window.addEventListener('load', function () {
-						let js_<?=$jsvarname?> = document.createElement('script');
-						js_<?=$jsvarname?>.src = <?=json_encode($filePath)?>;
-
-						js_<?=$jsvarname?>.addEventListener('load', function () {
-							resolve();
-						});
-						js_<?=$jsvarname?>.addEventListener('error', function () {
-							resolve();
-						});
-
-						document.body.appendChild(js_<?=$jsvarname?>);
-					});
-				});
-
-				JS_LOADING_PROMISES.push(js_<?=$jsvarname?>_promise);
-			</script>
-			<?php
-		} else {
-			?>
-			<script type="text/javascript" src="<?= $filePath ?>"<?= $options['async'] ? ' async' : '' ?>></script>
-			<?php
-		}
+		?>
+		<script type="text/javascript" src="<?= $filePath ?>"<?= $options['defer'] ? ' defer' : '' ?><?= $options['async'] ? ' async' : '' ?>></script>
+		<?php
 	}
 
 	/**
