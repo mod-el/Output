@@ -329,8 +329,15 @@ class Output extends Module
 	private function getCacheData()
 	{
 		if ($this->cache === false) {
-			if (file_exists(INCLUDE_PATH . 'model' . DIRECTORY_SEPARATOR . 'Output' . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'cache.php'))
-				require(INCLUDE_PATH . 'model' . DIRECTORY_SEPARATOR . 'Output' . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'cache.php');
+			$this->cache = [];
+			$cacheFile = INCLUDE_PATH . 'model' . DIRECTORY_SEPARATOR . 'Output' . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'cache.php';
+			if (file_exists($cacheFile)) {
+				$this->cache = json_decode(file_get_contents($cacheFile), true);
+				if (!$this->cache) { // Malformed file
+					file_put_contents($cacheFile, "{}");
+					$this->cache = [];
+				}
+			}
 		}
 		return $this->cache;
 	}
@@ -514,9 +521,7 @@ class Output extends Module
 	public function terminate()
 	{
 		if ($this->editedCache) {
-			file_put_contents(INCLUDE_PATH . 'model' . DIRECTORY_SEPARATOR . 'Output' . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'cache.php', '<?php
-$this->cache = ' . var_export($this->cache, true) . ';
-');
+			file_put_contents(INCLUDE_PATH . 'model' . DIRECTORY_SEPARATOR . 'Output' . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'cache.php', json_encode($this->cache));
 
 		}
 	}
