@@ -56,10 +56,24 @@ $this->cache = [];
 		if (!is_dir($dir))
 			return true;
 
-		$files = array_diff(scandir($dir), ['.', '..']);
-		foreach ($files as $file) {
-			(is_dir("$dir/$file")) ? $this->delTree("$dir/$file") : unlink("$dir/$file");
+		try {
+			if (!is_callable('exec') or stripos(ini_get('disable_functions'), 'exec') !== false)
+				throw new \Exception('exec function disabled');
+
+			$response = exec('rm -rf ' . $dir, $response_rows, $result_code);
+			if ($response === false)
+				throw new \Exception('exec function failed');
+			if ($result_code !== 0)
+				throw new \Exception('exec function returned non-zero code');
+
+			return true;
+		} catch (\Exception $e) {
+			$files = array_diff(scandir($dir), ['.', '..']);
+			foreach ($files as $file) {
+				(is_dir("$dir/$file")) ? $this->delTree("$dir/$file") : unlink("$dir/$file");
+			}
+
+			return rmdir($dir);
 		}
-		return rmdir($dir);
 	}
 }
