@@ -1,7 +1,7 @@
 {
 	"name": "Output",
 	"description": "Templating engine with cache management (install matthiasmullie/minify for minify features)",
-	"version": "0.4.0",
+	"version": "0.5.0",
 	"dependencies": {
 		"Core": ">=2.10.0"
 	},

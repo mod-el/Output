@@ -1069,14 +1069,18 @@ class Output extends Module
 	 * Retrieves a word from the dictionary
 	 *
 	 * @param string $k
-	 * @param string $lang
+	 * @param bool $escape
+	 * @param string|null $lang
 	 * @return string
 	 */
-	protected function word(string $k, string $lang = null): string
+	protected function word(string $k, bool $escape = true, ?string $lang = null): string
 	{
 		foreach ($this->renderingsMetaData as $template => $metadata)
 			$this->renderingsMetaData[$template]['language-bound'] = true;
 
-		return $this->model->_Multilang->word($k, $lang);
+		$word = $this->model->_Multilang->word($k, $lang);
+		if ($escape)
+			$word = entities($word);
+		return $word;
 	}
 }
