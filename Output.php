@@ -652,11 +652,19 @@ class Output extends Module
 		$html = '';
 		foreach ($messages as $message) {
 			if ($this->model->isLoaded('Bootstrap')) {
+				$closeBtn = '';
+				switch ($this->model->_Bootstrap->getVersion()) {
+					case 4:
+						$closeBtn = '<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>';
+						break;
+					case 5:
+						$closeBtn = '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+						break;
+				}
+
 				$html .= '<div class="alert alert-' . $type . ' alert-dismissible fade show" role="alert">
 				  ' . $message . '
-				  <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-				    <span aria-hidden="true">&times;</span>
-				  </button>
+				  ' . $closeBtn . '
 				</div>';
 			} else {
 				$html .= '<div class="' . $classes[$type] . '">' . $message . '</div>';
@@ -1028,21 +1036,35 @@ class Output extends Module
 		?>
 		<div data-zkdebug="<?= $this->options['showLayout'] ? 'main' : 'ajax' ?>" data-url="<?= $debug['request'] ?>"
 		     style="display: none">
-			<b>Prefix:</b> <?= $debug['prefix'] ?><br/> <b>Request:</b> <?= $debug['request'] ?><br/>
-			<b>Execution time:</b> <?= $debug['execution_time'] ?><br/> <b>Controller:</b> <?= $debug['controller'] ?>
+			<b>Prefix:</b> <?= $debug['prefix'] ?>
 			<br/>
-			<?php if (isset($debug['pageId'])) { ?><b>Page Id:</b> <?= $debug['pageId'] ?><br/><?php } ?>
+			<b>Request:</b> <?= $debug['request'] ?>
+			<br/>
+			<b>Execution time:</b> <?= $debug['execution_time'] ?>
+			<br/>
+			<b>Controller:</b> <?= $debug['controller'] ?>
+			<br/>
+			<?php if (isset($debug['pageId'])) { ?>
+				<b>Page Id:</b> <?= $debug['pageId'] ?>
+				<br/><?php } ?>
 			<?php if (isset($debug['elementType'], $debug['elementId'])) { ?>
-				<b>Element:</b> <?= $debug['elementType'] . ' #' . $debug['elementId'] ?><br/><?php } ?>
-			<b>Modules:</b> <?= implode(', ', $debug['modules']) ?><br/>
-			<b>Template:</b> <?= $this->options['template'] ?: 'none' ?><br/>
-			<b>Loading ID:</b> <?= $debug['zk_loading_id'] ?><br/>
+				<b>Element:</b> <?= $debug['elementType'] . ' #' . $debug['elementId'] ?>
+				<br/><?php } ?>
+			<b>Modules:</b> <?= implode(', ', $debug['modules']) ?>
+			<br/>
+			<b>Template:</b> <?= $this->options['template'] ?: 'none' ?>
+			<br/>
+			<b>Loading ID:</b> <?= $debug['zk_loading_id'] ?>
+			<br/>
 			<?php
 			if (isset($debug['n_query'])) {
 				?>
-				<b>Executed queries:</b> <?= $debug['n_query'] ?><br/>
-				<b>Prepared queries:</b> <?= $debug['n_prepared'] ?><br/>
-				<b>Queries per table:</b><br/>
+				<b>Executed queries:</b> <?= $debug['n_query'] ?>
+				<br/>
+				<b>Prepared queries:</b> <?= $debug['n_prepared'] ?>
+				<br/>
+				<b>Queries per table:</b>
+				<br/>
 				<?php
 				zkdump($debug['query_per_table']);
 			}
