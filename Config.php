@@ -76,4 +76,9 @@ $this->cache = [];
 			return rmdir($dir);
 		}
 	}
+
+	public function getConfigData(): ?array
+	{
+		return [];
+	}
 }
