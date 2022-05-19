@@ -209,9 +209,12 @@ class Output extends Module
 				} elseif ($this->options['template-engine']) {
 					if (isset($this->options[$token])) { // Option
 						$sub_html = $this->options[$token];
-					} elseif (strpos($token, 'el:') === 0 and $options['element'] !== null) { // Element data
+					} elseif (str_starts_with($token, 'el:') and $options['element'] !== null) { // Element data
 						$dato = substr($token, 3);
 						$sub_html = $options['element'][$dato];
+					} elseif (str_starts_with($token, 'i:')) { // Element data
+						$varname = substr($token, 2);
+						$sub_html = (string)$this->injected($varname);
 					} else {
 						$t = explode('|', $token);
 						$injected_vars = $t[1] ?? null;
