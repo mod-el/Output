@@ -1103,7 +1103,10 @@ class Output extends Module
 		foreach ($this->renderingsMetaData as $template => $metadata)
 			$this->renderingsMetaData[$template]['language-bound'] = true;
 
-		$word = $this->model->_Multilang->word($k, $lang);
+		if(!class_exists('\\Model\\Multilang\\Dictionary'))
+			throw new \Exception('Package model/multilang not found');
+
+		$word = \Model\Multilang\Dictionary::get($k, $lang);
 		if ($escape)
 			$word = entities($word);
 		return $word;
