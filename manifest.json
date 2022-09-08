@@ -1,9 +1,9 @@
 {
 	"name": "Output",
 	"description": "Templating engine with cache management (install matthiasmullie/minify for minify features)",
-	"version": "0.6.0",
+	"version": "0.7.0",
 	"dependencies": {
-		"Core": ">=2.10.0"
+		"Core": ">=3.0.0"
 	},
 	"file-types": {
 		"template": {
@@ -23,5 +23,8 @@
 		"sendJSON": "sendJSON",
 		"inject": "inject",
 		"injected": "injected"
-	}
+	},
+	"requires": [
+		"model/assets"
+	]
 }

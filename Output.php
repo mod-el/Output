@@ -1,5 +1,6 @@
 <?php namespace Model\Output;
 
+use Model\Assets\Assets;
 use Model\Core\Autoloader;
 use Model\Core\Module;
 use Model\ORM\Element;
@@ -910,12 +911,12 @@ class Output extends Module
 
 		if (!$config['minify-css'] or (DEBUG_MODE and !isset($_COOKIE['ZK_MINIFY']))) {
 			foreach ($cssList as $file)
-				$this->renderCss($file, $this->cssOptions[$file] ?? []);
+				Assets::renderCss($file, $this->cssOptions[$file] ?? []);
 		} else {
 			$toMinify = [];
 			foreach ($cssList as $file) {
 				if (strtolower(substr($file, 0, 4)) === 'http' or !$this->cssOptions[$file]['cacheable']) {
-					$this->renderCss($file, $this->cssOptions[$file] ?? []);
+					Assets::renderCss($file, $this->cssOptions[$file] ?? []);
 				} else {
 					$k = (int)$this->cssOptions[$file]['defer'];
 					if (!isset($toMinify[$k])) {
@@ -938,7 +939,7 @@ class Output extends Module
 					$minifier->minify($minifiedFilePath);
 				}
 
-				$this->renderCss($minifiedFilePath, [
+				Assets::renderCss($minifiedFilePath, [
 					'defer' => $singleToMinify['defer'],
 				]);
 			}
@@ -948,12 +949,12 @@ class Output extends Module
 
 		if (!$config['minify-js'] or (DEBUG_MODE and !isset($_COOKIE['ZK_MINIFY']))) {
 			foreach ($jsList as $file)
-				$this->renderJs($file, $this->jsOptions[$file] ?? []);
+				Assets::renderJs($file, $this->jsOptions[$file] ?? []);
 		} else {
 			$toMinify = [];
 			foreach ($jsList as $file) {
 				if (strtolower(substr($file, 0, 4)) === 'http' or !$this->jsOptions[$file]['cacheable']) {
-					$this->renderJs($file);
+					Assets::renderJs($file);
 				} else {
 					$k = (int)$this->jsOptions[$file]['defer'] . '-' . (int)$this->jsOptions[$file]['async'];
 					if (!isset($toMinify[$k])) {
@@ -977,7 +978,7 @@ class Output extends Module
 					$minifier->minify($minifiedFilePath);
 				}
 
-				$this->renderJs($minifiedFilePath, [
+				Assets::renderJs($minifiedFilePath, [
 					'defer' => $singleToMinify['defer'],
 					'async' => $singleToMinify['async'],
 				]);
@@ -986,48 +987,6 @@ class Output extends Module
 
 		$html = ob_get_clean();
 		return $html;
-	}
-
-	/**
-	 * @param string $file
-	 * @param array $options
-	 */
-	private function renderJs(string $file, array $options = [])
-	{
-		$options = array_merge([
-			'async' => false,
-			'defer' => false,
-		], $options);
-
-		$filePath = strtolower(substr($file, 0, 4)) === 'http' ? $file : PATH . $file;
-		?>
-		<script type="text/javascript" src="<?= $filePath ?>"<?= $options['defer'] ? ' defer' : '' ?><?= $options['async'] ? ' async' : '' ?>></script>
-		<?php
-	}
-
-	/**
-	 * @param string $file
-	 * @param array $options
-	 */
-	private function renderCss(string $file, array $options = [])
-	{
-		$options = array_merge([
-			'defer' => false,
-		], $options);
-
-		$filePath = strtolower(substr($file, 0, 4)) === 'http' ? $file : PATH . $file;
-		if ($options['defer']) {
-			?>
-			<link rel="preload" href="<?= $filePath ?>" as="style" onload="this.onload=null;this.rel='stylesheet'"/>
-			<noscript>
-				<link rel="stylesheet" href="<?= $filePath ?>"/>
-			</noscript>
-			<?php
-		} else {
-			?>
-			<link rel="stylesheet" type="text/css" href="<?= $filePath ?>"/>
-			<?php
-		}
 	}
 
 	/**
