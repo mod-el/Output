@@ -7,14 +7,10 @@ use Model\ORM\Element;
 
 class Output extends Module
 {
-	/** @var bool|array */
-	private $cache = false;
-	/** @var bool */
-	private $editedCache = false;
-	/** @var array */
-	private $renderingsMetaData = [];
-	/** @var array */
-	protected $options = [
+	private bool|array $cache = false;
+	private bool $editedCache = false;
+	private array $renderingsMetaData = [];
+	protected array $options = [
 		'header' => [],
 		'footer' => [],
 		'bindHeaderToRequest' => false,
@@ -36,20 +32,8 @@ class Output extends Module
 		'warnings' => [],
 		'messages' => [],
 	];
-	/** @var array */
-	private $injectedGlobal = [];
-
-	/** @var array */
-	private $css = [];
-	/** @var array */
-	private $js = [];
-	/** @var array */
-	private $cssOptions = [];
-	/** @var array */
-	private $jsOptions = [];
-
-	/** @var bool */
-	private $messagesShown = false;
+	private array $injectedGlobal = [];
+	private bool $messagesShown = false;
 
 	/**
 	 * @param mixed $options
@@ -90,7 +74,6 @@ class Output extends Module
 	 * If in debug mode shows the debug data
 	 *
 	 * @param array $options
-	 * @throws \Model\Core\Exception
 	 */
 	public function render(array $options)
 	{
@@ -682,6 +665,7 @@ class Output extends Module
 	 *
 	 * @param string $js
 	 * @param array $options
+	 * @deprecated
 	 */
 	public function addJS(string $js, array $options = [])
 	{
@@ -694,71 +678,27 @@ class Output extends Module
 			'defer' => false,
 			'async' => false,
 		], $options);
-		if (!is_array($options['with']))
-			$options['with'] = [$options['with']];
-		if (!is_array($options['but']))
-			$options['but'] = [$options['but']];
 
-		if (strtolower(pathinfo(parse_url($js)['path'], PATHINFO_EXTENSION)) !== 'js')
-			$options['cacheable'] = false;
+		$options['type'] = 'js';
 
-		if (!in_array($js, $this->js))
-			$this->js[] = $js;
-		$this->jsOptions[$js] = $options;
+		$options['withTags'] = $options['with'];
+		unset($options['with']);
+
+		$options['exceptTags'] = $options['but'];
+		unset($options['but']);
+
+		Assets::add($js, $options);
 	}
 
 	/**
 	 * Removes a JavaScript file to the output
 	 *
 	 * @param string $name
+	 * @deprecated
 	 */
 	public function removeJS(string $name)
 	{
-		if (isset($this->jsOptions[$name]))
-			unset($this->jsOptions[$name]);
-		foreach ($this->js as $k => $n) {
-			if ($n == $name)
-				unset($this->js[$k]);
-		}
-	}
-
-	/**
-	 * Removes all JavaScript files set by the user
-	 */
-	public function wipeJS()
-	{
-		foreach ($this->jsOptions as $name => $options) {
-			if ($options['custom'])
-				$this->removeJS($name);
-		}
-	}
-
-	/**
-	 * @param bool $forCache
-	 * @return array
-	 */
-	public function getJSList(bool $forCache = false, ?string $type = null): array
-	{
-		$list = [];
-		if ($forCache) {
-			foreach ($this->js as $js) {
-				if ($this->jsOptions[$js]['cacheable'])
-					$list[] = $js;
-			}
-		} else {
-			foreach ($this->js as $file) {
-				if ($this->jsOptions[$file]['with'] and !in_array($this->model->leadingModule, $this->jsOptions[$file]['with']))
-					continue;
-				if (in_array($this->model->leadingModule, $this->jsOptions[$file]['but']))
-					continue;
-				if ($type !== null and ((!$this->jsOptions[$file]['head'] and $type === 'head') or ($this->jsOptions[$file]['head'] and $type === 'foot')))
-					continue;
-
-				$list[] = $file;
-			}
-		}
-
-		return $list;
+		Assets::remove($name);
 	}
 
 	/**
@@ -766,6 +706,7 @@ class Output extends Module
 	 *
 	 * @param string $css
 	 * @param array $options
+	 * @deprecated
 	 */
 	public function addCSS(string $css, array $options = [])
 	{
@@ -773,73 +714,30 @@ class Output extends Module
 			'with' => [],
 			'but' => [],
 			'custom' => true,
-			'head' => true,
 			'cacheable' => true,
 			'defer' => false,
 		], $options);
-		if (!is_array($options['with']))
-			$options['with'] = [$options['with']];
-		if (!is_array($options['but']))
-			$options['but'] = [$options['but']];
 
-		if (!in_array($css, $this->css))
-			$this->css[] = $css;
-		$this->cssOptions[$css] = $options;
+		$options['type'] = 'css';
+
+		$options['withTags'] = $options['with'];
+		unset($options['with']);
+
+		$options['exceptTags'] = $options['but'];
+		unset($options['but']);
+
+		Assets::add($css, $options);
 	}
 
 	/**
 	 * Removes a CSS file to the output
 	 *
 	 * @param string $name
+	 * @deprecated
 	 */
 	public function removeCSS(string $name)
 	{
-		if (isset($this->cssOptions[$name]))
-			unset($this->cssOptions[$name]);
-		foreach ($this->css as $k => $n) {
-			if ($n == $name)
-				unset($this->css[$k]);
-		}
-	}
-
-	/**
-	 * Removes all CSS files set by the user
-	 */
-	public function wipeCSS()
-	{
-		foreach ($this->cssOptions as $name => $options) {
-			if ($options['custom'])
-				$this->removeCSS($name);
-		}
-	}
-
-	/**
-	 * @param bool $forCache
-	 * @param string|null $type
-	 * @return array
-	 */
-	public function getCSSList(bool $forCache = false, ?string $type = null): array
-	{
-		$list = [];
-		if ($forCache) {
-			foreach ($this->css as $css) {
-				if ($this->cssOptions[$css]['cacheable'])
-					$list[] = $css;
-			}
-		} else {
-			foreach ($this->css as $file) {
-				if ($this->cssOptions[$file]['with'] and !in_array($this->model->leadingModule, $this->cssOptions[$file]['with']))
-					continue;
-				if (in_array($this->model->leadingModule, $this->cssOptions[$file]['but']))
-					continue;
-				if ($type !== null and ((!$this->cssOptions[$file]['head'] and $type === 'head') or ($this->cssOptions[$file]['head'] and $type === 'foot')))
-					continue;
-
-				$list[] = $file;
-			}
-		}
-
-		return $list;
+		Assets::remove($name);
 	}
 
 	/**
@@ -898,95 +796,15 @@ class Output extends Module
 				break;
 			default:
 				ob_clean();
-
-				$this->model->error('Unknown basic section type.');
-				break;
+				throw new \Exception('Unknown basic section type.');
 		}
 
-		$config = $this->retrieveConfig();
+		Assets::render([
+			'position-' . $type,
+			'module-' . $this->model->leadingModule,
+		]);
 
-		$cacheseed = defined('MINIFY_CACHE_SEED') ? MINIFY_CACHE_SEED : '';
-
-		$cssList = $this->getCSSList(false, $type);
-
-		if (!$config['minify-css'] or (DEBUG_MODE and !isset($_COOKIE['ZK_MINIFY']))) {
-			foreach ($cssList as $file)
-				Assets::renderCss($file, $this->cssOptions[$file] ?? []);
-		} else {
-			$toMinify = [];
-			foreach ($cssList as $file) {
-				if (strtolower(substr($file, 0, 4)) === 'http' or !$this->cssOptions[$file]['cacheable']) {
-					Assets::renderCss($file, $this->cssOptions[$file] ?? []);
-				} else {
-					$k = (int)$this->cssOptions[$file]['defer'];
-					if (!isset($toMinify[$k])) {
-						$toMinify[$k] = [
-							'defer' => $this->cssOptions[$file]['defer'],
-							'files' => [],
-						];
-					}
-					$toMinify[$k]['files'][] = $file;
-				}
-			}
-
-			foreach ($toMinify as $singleToMinify) {
-				$minifiedFilename = sha1(implode('', $singleToMinify['files']) . $cacheseed);
-				$minifiedFilePath = 'model' . DIRECTORY_SEPARATOR . 'Output' . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'minified' . DIRECTORY_SEPARATOR . $minifiedFilename . '.css';
-				if (!file_exists(INCLUDE_PATH . $minifiedFilePath)) {
-					$minifier = new \MatthiasMullie\Minify\CSS();
-					foreach ($singleToMinify['files'] as $file)
-						$minifier->add(parse_url(INCLUDE_PATH . $file)['path']);
-					$minifier->minify($minifiedFilePath);
-				}
-
-				Assets::renderCss($minifiedFilePath, [
-					'defer' => $singleToMinify['defer'],
-				]);
-			}
-		}
-
-		$jsList = $this->getJSList(false, $type);
-
-		if (!$config['minify-js'] or (DEBUG_MODE and !isset($_COOKIE['ZK_MINIFY']))) {
-			foreach ($jsList as $file)
-				Assets::renderJs($file, $this->jsOptions[$file] ?? []);
-		} else {
-			$toMinify = [];
-			foreach ($jsList as $file) {
-				if (strtolower(substr($file, 0, 4)) === 'http' or !$this->jsOptions[$file]['cacheable']) {
-					Assets::renderJs($file);
-				} else {
-					$k = (int)$this->jsOptions[$file]['defer'] . '-' . (int)$this->jsOptions[$file]['async'];
-					if (!isset($toMinify[$k])) {
-						$toMinify[$k] = [
-							'defer' => $this->jsOptions[$file]['defer'],
-							'async' => $this->jsOptions[$file]['async'],
-							'files' => [],
-						];
-					}
-					$toMinify[$k]['files'][] = $file;
-				}
-			}
-
-			foreach ($toMinify as $singleToMinify) {
-				$minifiedFilename = sha1(implode('', $singleToMinify['files']) . $cacheseed);
-				$minifiedFilePath = 'model' . DIRECTORY_SEPARATOR . 'Output' . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'minified' . DIRECTORY_SEPARATOR . $minifiedFilename . '.js';
-				if (!file_exists(INCLUDE_PATH . $minifiedFilePath)) {
-					$minifier = new \MatthiasMullie\Minify\JS();
-					foreach ($singleToMinify['files'] as $file)
-						$minifier->add(parse_url(INCLUDE_PATH . $file)['path']);
-					$minifier->minify($minifiedFilePath);
-				}
-
-				Assets::renderJs($minifiedFilePath, [
-					'defer' => $singleToMinify['defer'],
-					'async' => $singleToMinify['async'],
-				]);
-			}
-		}
-
-		$html = ob_get_clean();
-		return $html;
+		return ob_get_clean();
 	}
 
 	/**
@@ -1062,7 +880,7 @@ class Output extends Module
 		foreach ($this->renderingsMetaData as $template => $metadata)
 			$this->renderingsMetaData[$template]['language-bound'] = true;
 
-		if(!class_exists('\\Model\\Multilang\\Dictionary'))
+		if (!class_exists('\\Model\\Multilang\\Dictionary'))
 			throw new \Exception('Package model/multilang not found');
 
 		$word = \Model\Multilang\Dictionary::get($k, $lang);

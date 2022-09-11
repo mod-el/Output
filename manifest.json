@@ -1,7 +1,7 @@
 {
 	"name": "Output",
-	"description": "Templating engine with cache management (install matthiasmullie/minify for minify features)",
-	"version": "0.7.0",
+	"description": "Templating engine with cache management",
+	"version": "0.8.0",
 	"dependencies": {
 		"Core": ">=3.0.0"
 	},
@@ -18,8 +18,6 @@
 		"removeJS": "removeJS",
 		"wipeCSS": "wipeCSS",
 		"wipeJS": "wipeJS",
-		"getCSSList": "getCSSList",
-		"getJSList": "getJSList",
 		"sendJSON": "sendJSON",
 		"inject": "inject",
 		"injected": "injected"
