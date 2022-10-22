@@ -47,7 +47,7 @@ class Output extends Module
 					if (!in_array($table, $metadata['tables']))
 						$this->renderingsMetaData[$template]['tables'][] = $table;
 
-					if ($this->model->isLoaded('Multilang') and array_key_exists($table, $this->model->_Multilang->tables))
+					if (class_exists('\\Model\\Multilang\\Ml') and isset(\Model\Multilang\Ml::getTables($this->model->_Db->getConnection())[$table]))
 						$this->renderingsMetaData[$template]['language-bound'] = true;
 				}
 			}
