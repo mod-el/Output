@@ -54,7 +54,7 @@ class Output extends Module
 		});
 
 		$this->model->on('Router_gettingUrl', function ($data) {
-			if ($this->model->isLoaded('Multilang')) {
+			if (class_exists('\\Model\\Multilang\\Ml')) {
 				foreach ($this->renderingsMetaData as $template => $metadata)
 					$this->renderingsMetaData[$template]['language-bound'] = true;
 			}
@@ -441,9 +441,9 @@ class Output extends Module
 	 */
 	private function getFileCachePath(string $path, array $fileData): string
 	{
-		if ($fileData['language-bound'] and $this->model->isLoaded('Multilang')) {
+		if ($fileData['language-bound'] and class_exists('\\Model\\Multilang\\Ml'))
 			$path .= '-' . $this->model->_Multilang->lang;
-		}
+
 		return INCLUDE_PATH . 'model' . DIRECTORY_SEPARATOR . 'Output' . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . $path . '.html';
 	}
 
@@ -601,9 +601,8 @@ class Output extends Module
 		$cache = $this->getCacheData();
 
 		foreach ($cache as $file => $data) {
-			if ($data['language-bound']) {
+			if ($data['language-bound'])
 				$this->removeFileFromCache($file);
-			}
 		}
 	}
 
