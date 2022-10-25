@@ -442,7 +442,7 @@ class Output extends Module
 	private function getFileCachePath(string $path, array $fileData): string
 	{
 		if ($fileData['language-bound'] and class_exists('\\Model\\Multilang\\Ml'))
-			$path .= '-' . $this->model->_Multilang->lang;
+			$path .= '-' . \Model\Multilang\Ml::getLang();
 
 		return INCLUDE_PATH . 'model' . DIRECTORY_SEPARATOR . 'Output' . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . $path . '.html';
 	}
@@ -855,11 +855,11 @@ class Output extends Module
 	/**
 	 * Shortcut for $this->model->getUrl
 	 *
-	 * @param string|bool $controller
+	 * @param string|null $controller
 	 * @param null|string $id
 	 * @param array $tags
 	 * @param array $opt
-	 * @return bool|string
+	 * @return string|null
 	 */
 	public function getUrl(?string $controller = null, ?string $id = null, array $tags = [], array $opt = []): ?string
 	{
