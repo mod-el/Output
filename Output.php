@@ -3,6 +3,8 @@
 use Model\Assets\Assets;
 use Model\Core\Autoloader;
 use Model\Core\Module;
+use Model\Db\Events\ChangedTable;
+use Model\Events\Events;
 use Model\ORM\Element;
 
 class Output extends Module
@@ -60,8 +62,8 @@ class Output extends Module
 			}
 		});
 
-		$this->model->on('Db_changedTable', function ($data) {
-			$this->changedTable($data['table']);
+		Events::subscribeTo(ChangedTable::class, function (ChangedTable $event) {
+			$this->changedTable($event->table);
 		});
 
 		$this->model->on('Multilang_changedDictionary', function ($data) {
