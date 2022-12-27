@@ -321,8 +321,10 @@ class Output extends Module
 			$this->cache = [];
 			$cacheFile = INCLUDE_PATH . 'model' . DIRECTORY_SEPARATOR . 'Output' . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'cache.php';
 			if (file_exists($cacheFile)) {
-				$this->cache = json_decode(file_get_contents($cacheFile), true);
-				if (!$this->cache) { // Malformed file
+				try {
+					$this->cache = json_decode(file_get_contents($cacheFile), true, 512, JSON_THROW_ON_ERROR);
+				} catch (\JsonException $e) {
+					// Malformed file
 					file_put_contents($cacheFile, "{}");
 					$this->cache = [];
 				}
