@@ -837,7 +837,7 @@ class Output extends Module
 			<br/>
 			<b>Template:</b> <?= $this->options['template'] ?: 'none' ?>
 			<br/>
-			<b>Loading ID:</b> <?= $debug['zk_loading_id'] ?>
+			<b>Loading ID:</b> <?= $debug['loading_id'] ?>
 			<br/>
 			<?php
 			if (isset($debug['n_query'])) {
