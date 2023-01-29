@@ -6,6 +6,7 @@ use Model\Core\Module;
 use Model\Db\Events\ChangedTable;
 use Model\Events\Events;
 use Model\ORM\Element;
+use Model\Router\Events\RouterUrlGet;
 
 class Output extends Module
 {
@@ -42,31 +43,31 @@ class Output extends Module
 	 */
 	public function init(array $options)
 	{
-		$this->model->on('Db_select', function ($data) {
+		Events::subscribeTo('SelectQuery', function (\Model\Db\Events\SelectQuery $event) {
 			foreach ($this->renderingsMetaData as $template => $metadata) {
-				$linkedTables = $this->model->_Db->getLinkedTables($data['table']);
+				$linkedTables = $this->model->_Db->getLinkedTables($event->table);
 				foreach ($linkedTables as $table) {
 					if (!in_array($table, $metadata['tables']))
 						$this->renderingsMetaData[$template]['tables'][] = $table;
 
-					if (class_exists('\\Model\\Multilang\\Ml') and isset(\Model\Multilang\Ml::getTables($this->model->_Db->getConnection())[$table]))
+					if (class_exists('\\Model\\Multilang\\Ml') and isset(\Model\Multilang\Ml::getTables(\Model\Db\Db::getConnection())[$table]))
 						$this->renderingsMetaData[$template]['language-bound'] = true;
 				}
 			}
 		});
 
-		$this->model->on('Router_gettingUrl', function ($data) {
+		Events::subscribeTo('RouterUrlGet', function (RouterUrlGet $event) {
 			if (class_exists('\\Model\\Multilang\\Ml')) {
 				foreach ($this->renderingsMetaData as $template => $metadata)
 					$this->renderingsMetaData[$template]['language-bound'] = true;
 			}
 		});
 
-		Events::subscribeTo(ChangedTable::class, function (ChangedTable $event) {
+		Events::subscribeTo('ChangedTable', function (ChangedTable $event) {
 			$this->changedTable($event->table);
 		});
 
-		$this->model->on('Multilang_changedDictionary', function ($data) {
+		Events::subscribeTo('ChangedDictionary', function (\Model\Multilang\Events\ChangedDictionary $event) {
 			$this->changedDictionary();
 		});
 	}

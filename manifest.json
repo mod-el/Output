@@ -23,6 +23,7 @@
 		"injected": "injected"
 	},
 	"requires": [
-		"model/assets"
+		"model/assets",
+		"model/events"
 	]
 }
