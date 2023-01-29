@@ -3,10 +3,8 @@
 use Model\Assets\Assets;
 use Model\Core\Autoloader;
 use Model\Core\Module;
-use Model\Db\Events\ChangedTable;
 use Model\Events\Events;
 use Model\ORM\Element;
-use Model\Router\Events\RouterUrlGet;
 
 class Output extends Module
 {
@@ -43,7 +41,7 @@ class Output extends Module
 	 */
 	public function init(array $options)
 	{
-		Events::subscribeTo('SelectQuery', function (\Model\Db\Events\SelectQuery $event) {
+		Events::subscribeTo(\Model\Db\Events\SelectQuery::class, function (\Model\Db\Events\SelectQuery $event) {
 			foreach ($this->renderingsMetaData as $template => $metadata) {
 				$linkedTables = $this->model->_Db->getLinkedTables($event->table);
 				foreach ($linkedTables as $table) {
@@ -56,18 +54,18 @@ class Output extends Module
 			}
 		});
 
-		Events::subscribeTo('RouterUrlGet', function (RouterUrlGet $event) {
+		Events::subscribeTo(\Model\Router\Events\RouterUrlGet::class, function (\Model\Router\Events\RouterUrlGet $event) {
 			if (class_exists('\\Model\\Multilang\\Ml')) {
 				foreach ($this->renderingsMetaData as $template => $metadata)
 					$this->renderingsMetaData[$template]['language-bound'] = true;
 			}
 		});
 
-		Events::subscribeTo('ChangedTable', function (ChangedTable $event) {
+		Events::subscribeTo(\Model\Db\Events\ChangedTable::class, function (\Model\Db\Events\ChangedTable $event) {
 			$this->changedTable($event->table);
 		});
 
-		Events::subscribeTo('ChangedDictionary', function (\Model\Multilang\Events\ChangedDictionary $event) {
+		Events::subscribeTo(\Model\Multilang\Events\ChangedDictionary::class, function (\Model\Multilang\Events\ChangedDictionary $event) {
 			$this->changedDictionary();
 		});
 	}
