@@ -54,7 +54,7 @@ class Output extends Module
 			}
 		});
 
-		Events::subscribeTo(\Model\Router\Events\RouterUrlGet::class, function (\Model\Router\Events\RouterUrlGet $event) {
+		Events::subscribeTo(\Model\Router\Events\UrlGet::class, function (\Model\Router\Events\UrlGet $event) {
 			if (class_exists('\\Model\\Multilang\\Ml')) {
 				foreach ($this->renderingsMetaData as $template => $metadata)
 					$this->renderingsMetaData[$template]['language-bound'] = true;
