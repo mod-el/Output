@@ -1,7 +1,7 @@
 {
 	"name": "Output",
 	"description": "Templating engine with cache management",
-	"version": "0.8.0",
+	"version": "0.9.0",
 	"dependencies": {
 		"Core": ">=3.0.0"
 	},
@@ -24,6 +24,7 @@
 	},
 	"requires": [
 		"model/assets",
-		"model/events"
+		"model/events",
+		"model/cache"
 	]
 }
