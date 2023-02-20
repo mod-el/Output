@@ -1,6 +1,7 @@
 <?php namespace Model\Output;
 
 use Model\Assets\Assets;
+use Model\Cache\Cache;
 use Model\Core\Autoloader;
 use Model\Core\Module;
 use Model\Events\Events;
@@ -8,8 +9,7 @@ use Model\ORM\Element;
 
 class Output extends Module
 {
-	private bool|array $cache = false;
-	private bool $editedCache = false;
+	private array $cache;
 	private array $renderingsMetaData = [];
 	protected array $options = [
 		'header' => [],
@@ -41,6 +41,9 @@ class Output extends Module
 	 */
 	public function init(array $options)
 	{
+		if (!Cache::isTagAware())
+			throw new \Exception('Output cache requires a tag aware adapter');
+
 		Events::subscribeTo(\Model\Db\Events\SelectQuery::class, function (\Model\Db\Events\SelectQuery $event) {
 			foreach ($this->renderingsMetaData as $template => $metadata) {
 				$linkedTables = $this->model->_Db->getLinkedTables($event->table);
@@ -157,7 +160,7 @@ class Output extends Module
 		}
 
 		if ($options['cache']) {
-			$cache = $this->getCacheData();
+			$cache = $this->getMainCache();
 
 			$cacheKey = $file['path'];
 			if ($options['request-bound']) {
@@ -168,22 +171,26 @@ class Output extends Module
 				$cacheKey .= '.DEBUG';
 			$cacheKey .= '.' . md5(json_encode($options['inject']));
 
-			if (isset($cache[$file['path']]) and $file['modified'] === $cache[$file['path']]['modified'] and $this->cacheFileExists($cacheKey, $cache[$file['path']])) {
-				$html = $this->getHtmlFromCache($cacheKey, $cache[$file['path']]);
-			} else {
-				if (isset($cache[$file['path']]) and $file['modified'] !== $cache[$file['path']]['modified'])
-					$this->removeFileFromCache($file['path']);
+			if (isset($cache[$file['path']]) and $file['modified'] !== $cache[$file['path']]['modified'])
+				$this->removeFileFromCache($file['path']);
+
+			$fullcacheKey = $this->getFullCacheKey($cacheKey, $cache[$file['path']] ?? null);
+			$cacheAdapter = Cache::getCacheAdapter();
+			$html = $cacheAdapter->get('model.legacy.output.' . $fullcacheKey, function (\Symfony\Contracts\Cache\ItemInterface $item) use ($cacheKey, $file, $options) {
+				$this->removeFileFromCache($file['path']);
+
+				$item->expiresAfter(3600 * 24);
+				$item->tag(sha1($file['path']));
 
 				$templateData = $this->makeTemplateHtml($file['path'], $options['element'], $options['inject']);
-				$html = $templateData['html'];
-				$this->saveFileInCache($file, $cacheKey, $templateData['html'], $templateData['data']);
-			}
+				$this->editCacheData($file['path'], [...$templateData['data'], 'modified' => $file['modified']]);
+				return $templateData['html'];
+			});
 		} else {
-			$templateData = $this->makeTemplateHtml($file['path'], $options['element'], $options['inject']);
-			$html = $templateData['html'];
+			$html = $this->makeTemplateHtml($file['path'], $options['element'], $options['inject'])['html'];
 		}
 
-		if (strpos($html, '[:') !== false) {
+		if (str_contains($html, '[:')) {
 			preg_match_all('/\[:([^\]]+?)\]/', $html, $tokens);
 			foreach ($tokens[1] as $token) {
 				$sub_html = false;
@@ -216,7 +223,7 @@ class Output extends Module
 							$injected_vars = [];
 						}
 
-						if (strpos($t, 't:') === 0) { // Template
+						if (str_starts_with($t, 't:')) { // Template
 							$template = substr($t, 2);
 							$sub_html = $this->renderTemplate($template, [
 								'cache' => $options['cache'],
@@ -225,7 +232,7 @@ class Output extends Module
 								'element' => $options['element'],
 								'inject' => $injected_vars,
 							]);
-						} elseif (strpos($t, 'td:') === 0) { // Dynamic (non-cached) template
+						} elseif (str_starts_with($t, 'td:')) { // Dynamic (non-cached) template
 							$template = substr($t, 3);
 							$sub_html = $this->renderTemplate($template, [
 								'cache' => false,
@@ -234,7 +241,7 @@ class Output extends Module
 								'element' => $options['element'],
 								'inject' => $injected_vars,
 							]);
-						} elseif (strpos($t, 'tr:') === 0) { // Request bound template
+						} elseif (str_starts_with($t, 'tr:')) { // Request bound template
 							$template = substr($t, 3);
 							$sub_html = $this->renderTemplate($template, [
 								'cache' => $options['cache'],
@@ -251,6 +258,7 @@ class Output extends Module
 					$html = str_replace('[:' . $token . ']', $sub_html, $html);
 			}
 		}
+
 		$html = str_replace('[\\:', '[:', $html);
 
 		if ($options['show-messages'] and !$this->messagesShown)
@@ -312,23 +320,18 @@ class Output extends Module
 	/**
 	 * Returns the full cache metadata for this module
 	 *
-	 * @return array|bool
+	 * @return array
 	 */
-	private function getCacheData()
+	private function getMainCache(): array
 	{
-		if ($this->cache === false) {
-			$this->cache = [];
-			$cacheFile = INCLUDE_PATH . 'model' . DIRECTORY_SEPARATOR . 'Output' . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'cache.php';
-			if (file_exists($cacheFile)) {
-				try {
-					$this->cache = json_decode(file_get_contents($cacheFile), true, 512, JSON_THROW_ON_ERROR);
-				} catch (\JsonException $e) {
-					// Malformed file
-					file_put_contents($cacheFile, "{}");
-					$this->cache = [];
-				}
-			}
+		if (!isset($this->cache)) {
+			$cacheAdapter = Cache::getCacheAdapter();
+			$this->cache = $cacheAdapter->get('model.legacy.output.main', function (\Symfony\Contracts\Cache\ItemInterface $item) {
+				$item->expiresAfter(3600 * 24);
+				return [];
+			});
 		}
+
 		return $this->cache;
 	}
 
@@ -388,83 +391,34 @@ class Output extends Module
 	}
 
 	/**
-	 * Returns a cached template
+	 * Returns the full hash with eventual language binding for a given template
 	 *
 	 * @param string $path
-	 * @param array $fileData
-	 * @return bool|string
-	 */
-	private function getHtmlFromCache(string $path, array $fileData)
-	{
-		$cachePath = $this->getFileCachePath($path, $fileData);
-		$html = file_get_contents($cachePath);
-		return $html;
-	}
-
-	/**
-	 * Returns a boolean indicating if a template is cached or not
-	 *
-	 * @param string $path
-	 * @param array $fileData
-	 * @return bool
-	 */
-	private function cacheFileExists(string $path, array $fileData)
-	{
-		$cachePath = $this->getFileCachePath($path, $fileData);
-		return file_exists($cachePath);
-	}
-
-	/**
-	 * Saves a cache file; the full html (generated in the other methods) is given as input
-	 *
-	 * @param array $file
-	 * @param string $cacheKey
-	 * @param string $html
-	 * @param array $fileData
-	 */
-	private function saveFileInCache(array $file, string $cacheKey, string $html, array $fileData)
-	{
-		$cachePath = $this->getFileCachePath($cacheKey, $fileData);
-		$cachePathInfo = pathinfo($cachePath);
-		if (!is_dir($cachePathInfo['dirname']))
-			mkdir($cachePathInfo['dirname'], 0777, true);
-
-		file_put_contents($cachePath, $html);
-
-		$fileData['modified'] = $file['modified'];
-		$this->editCacheData($file['path'], $fileData);
-	}
-
-	/**
-	 * Returns the path for the cache file of a template
-	 *
-	 * @param string $path
-	 * @param array $fileData
+	 * @param array|null $fileData
 	 * @return string
 	 */
-	private function getFileCachePath(string $path, array $fileData): string
+	private function getFullCacheKey(string $path, ?array $fileData = null): string
 	{
-		if ($fileData['language-bound'] and class_exists('\\Model\\Multilang\\Ml'))
+		if ($fileData and $fileData['language-bound'] and class_exists('\\Model\\Multilang\\Ml'))
 			$path .= '-' . \Model\Multilang\Ml::getLang();
 
-		return INCLUDE_PATH . 'model' . DIRECTORY_SEPARATOR . 'Output' . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . $path . '.html';
+		return sha1($path);
 	}
 
 	/**
 	 * Edits stored cache metadata for a template
 	 *
 	 * @param string $file
-	 * @param mixed $data
+	 * @param array $data
 	 */
-	private function editCacheData(string $file, $data)
+	private function editCacheData(string $file, array $data): void
 	{
-		if (isset($this->cache[$file])) {
-			$this->cache[$file] = array_merge($this->cache[$file], $data);
-		} else {
-			$this->cache[$file] = $data;
-		}
-
-		$this->editedCache = true;
+		$cache = $this->getMainCache();
+		if (isset($cache[$file]))
+			$cache[$file] = array_merge($cache[$file], $data);
+		else
+			$cache[$file] = $data;
+		$this->saveMainCache($cache);
 	}
 
 	/**
@@ -472,18 +426,29 @@ class Output extends Module
 	 *
 	 * @param string $file
 	 */
-	public function removeFileFromCache(string $file)
+	public function removeFileFromCache(string $file): void
 	{
-		$this->getCacheData();
+		$cache = $this->getMainCache();
+		if (isset($cache[$file]))
+			unset($cache[$file]);
 
-		if (isset($this->cache[$file]))
-			unset($this->cache[$file]);
+		$this->saveMainCache($cache);
 
-		$cacheFiles = glob(INCLUDE_PATH . 'model' . DIRECTORY_SEPARATOR . 'Output' . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'cache' . $file . '*');
-		foreach ($cacheFiles as $cacheFile)
-			unlink($cacheFile);
+		$cacheAdapter = Cache::getCacheAdapter();
+		$cacheAdapter->invalidateTags([sha1($file)]);
+	}
 
-		$this->editedCache = true;
+	/**
+	 * @param array $data
+	 * @return void
+	 */
+	private function saveMainCache(array $data): void
+	{
+		$this->cache = $data;
+		$cacheAdapter = Cache::getCacheAdapter();
+		$item = $cacheAdapter->getItem('model.legacy.output.main');
+		$item->set($data);
+		$cacheAdapter->save($item);
 	}
 
 	/**
@@ -503,17 +468,6 @@ class Output extends Module
 		}
 
 		return sha1(implode('/', $request) . '?' . json_encode($inputs));
-	}
-
-	/**
-	 * At the end of each execution, if the cache metadata were modified, this will save them on disk
-	 */
-	public function terminate()
-	{
-		if ($this->editedCache) {
-			file_put_contents(INCLUDE_PATH . 'model' . DIRECTORY_SEPARATOR . 'Output' . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'cache.php', json_encode($this->cache));
-
-		}
 	}
 
 	/**
@@ -588,7 +542,7 @@ class Output extends Module
 	 */
 	private function changedTable(string $table)
 	{
-		$cache = $this->getCacheData();
+		$cache = $this->getMainCache();
 
 		foreach ($cache as $file => $data) {
 			if (in_array($table, $data['tables']))
@@ -601,7 +555,7 @@ class Output extends Module
 	 */
 	private function changedDictionary()
 	{
-		$cache = $this->getCacheData();
+		$cache = $this->getMainCache();
 
 		foreach ($cache as $file => $data) {
 			if ($data['language-bound'])
@@ -762,22 +716,24 @@ class Output extends Module
 				$fakeHeadFileName = 'head-section';
 
 				if ($useCache) {
-					$cache = $this->getCacheData();
+					$cache = $this->getMainCache();
 
 					$cacheKey = $fakeHeadFileName . '.' . $this->getRequestKey();
 					if (DEBUG_MODE)
 						$cacheKey .= '.DEBUG';
 
-					if (isset($cache[$fakeHeadFileName]) and $this->cacheFileExists($cacheKey, $cache[$fakeHeadFileName])) {
-						echo $this->getHtmlFromCache($cacheKey, $cache[$fakeHeadFileName]);
-					} else {
-						if (isset($cache[$fakeHeadFileName]))
-							$this->removeFileFromCache($fakeHeadFileName);
+					$fullcacheKey = $this->getFullCacheKey($cacheKey, $cache[$fakeHeadFileName] ?? null);
+					$cacheAdapter = Cache::getCacheAdapter();
+					echo $cacheAdapter->get('model.legacy.output.' . $fullcacheKey, function (\Symfony\Contracts\Cache\ItemInterface $item) use ($cacheKey, $fakeHeadFileName) {
+						$this->removeFileFromCache($fakeHeadFileName);
+
+						$item->expiresAfter(3600 * 24);
+						$item->tag(sha1($fakeHeadFileName));
 
 						$templateData = $this->makeTemplateHtml($fakeHeadFileName, $this->model->element);
-						echo $templateData['html'];
-						$this->saveFileInCache(['path' => $fakeHeadFileName, 'modified' => null], $cacheKey, $templateData['html'], $templateData['data']);
-					}
+						$this->editCacheData($fakeHeadFileName, [...$templateData['data'], 'modified' => null]);
+						return $templateData['html'];
+					});
 				} else {
 					echo $this->makeTemplateHtml($fakeHeadFileName, $this->model->element)['html'];
 				}
