@@ -738,7 +738,7 @@ class Output extends Module
 					echo $this->makeTemplateHtml($fakeHeadFileName, $this->model->element)['html'];
 				}
 				?>
-				<script type="text/javascript">
+				<script>
 					/* Backward compatibility */
 					var base_path = '<?=PATH?>';
 					var absolute_path = '<?=$this->model->prefix()?>';
