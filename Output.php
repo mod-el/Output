@@ -568,7 +568,7 @@ class Output extends Module
 	 *
 	 * @return string
 	 */
-	private function getMessagesHtml()
+	private function getMessagesHtml(): string
 	{
 		$this->messagesShown = true;
 
@@ -592,11 +592,13 @@ class Output extends Module
 		if (!isset($classes[$type]))
 			$this->model->error('Unrecognized message type in output module');
 
+		$bootstrapVersion = Assets::isEnabled('bootstrap');
+
 		$html = '';
 		foreach ($messages as $message) {
-			if ($this->model->isLoaded('Bootstrap')) {
+			if ($bootstrapVersion) {
 				$closeBtn = '';
-				switch ($this->model->_Bootstrap->getVersion()) {
+				switch ($bootstrapVersion) {
 					case 4:
 						$closeBtn = '<button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>';
 						break;
