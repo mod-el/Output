@@ -274,10 +274,10 @@ class Output extends Module
 	 * Seeks for the location of a template
 	 *
 	 * @param string $t
-	 * @param string $module
+	 * @param string|null $module
 	 * @return array|bool
 	 */
-	public function findTemplateFile(string $t, string $module = null)
+	public function findTemplateFile(string $t, ?string $module = null)
 	{
 		$files = [
 			$t,
@@ -479,14 +479,12 @@ class Output extends Module
 	 * @param bool $pretty
 	 * @throws \Model\Core\Exception
 	 */
-	public function sendJSON($arr, bool $wrapData = null, bool $pretty = null)
+	public function sendJSON(mixed $arr, ?bool $wrapData = null, ?bool $pretty = null): never
 	{
-		if ($wrapData === null) {
+		if ($wrapData === null)
 			$wrapData = $this->model->isCLI() ? false : true;
-		}
-		if ($pretty === null) {
+		if ($pretty === null)
 			$pretty = $this->model->isCLI() ? true : false;
-		}
 
 		if (!$wrapData) {
 			echo json_encode($arr, $pretty ? JSON_PRETTY_PRINT : 0);
@@ -495,18 +493,18 @@ class Output extends Module
 			die();
 		}
 
-		$arr = array(
+		$arr = [
 			'ZKBINDINGS' => [],
-			'ZKDATA' => $arr
-		);
+			'ZKDATA' => $arr,
+		];
 
-		if (DEBUG_MODE and isset($_COOKIE['ZK_SHOW_JSON'])) {
+		if (DEBUG_MODE and isset($_COOKIE['ZK_SHOW_JSON']))
 			$arr['ZKDEBUG'] = $this->model->getDebugData();
-		}
 
 		echo json_encode($arr, $pretty ? JSON_PRETTY_PRINT : 0);
 		if ($pretty)
 			echo PHP_EOL;
+
 		die();
 	}
 
@@ -514,7 +512,7 @@ class Output extends Module
 	 * @param string $name
 	 * @param mixed $var
 	 */
-	public function inject(string $name, $var)
+	public function inject(string $name, mixed $var): void
 	{
 		if (!preg_match('/^[a-zA-Z_\x7f-\xff][a-zA-Z0-9_\x7f-\xff]*$/', $name))
 			$this->model->error('Injected variable "' . entities($name) . '" is not a valid name for a variable.');
@@ -524,15 +522,14 @@ class Output extends Module
 
 	/**
 	 * @param string|null $name
-	 * @return mixed|null
+	 * @return mixed
 	 */
-	public function injected(?string $name = null)
+	public function injected(?string $name = null): mixed
 	{
-		if ($name === null) {
+		if ($name === null)
 			return $this->injectedGlobal;
-		} else {
+		else
 			return $this->injectedGlobal[$name] ?? null;
-		}
 	}
 
 	/**
@@ -540,7 +537,7 @@ class Output extends Module
 	 *
 	 * @param string $table
 	 */
-	private function changedTable(string $table)
+	private function changedTable(string $table): void
 	{
 		$cache = $this->getMainCache();
 
@@ -553,7 +550,7 @@ class Output extends Module
 	/**
 	 * Triggered whenever a word in the dictionary is changed; removes all the affected cache files
 	 */
-	private function changedDictionary()
+	private function changedDictionary(): void
 	{
 		$cache = $this->getMainCache();
 
@@ -625,7 +622,7 @@ class Output extends Module
 	 * @param array $options
 	 * @deprecated
 	 */
-	public function addJS(string $js, array $options = [])
+	public function addJS(string $js, array $options = []): void
 	{
 		$options = array_merge([
 			'with' => [],
@@ -654,7 +651,7 @@ class Output extends Module
 	 * @param string $name
 	 * @deprecated
 	 */
-	public function removeJS(string $name)
+	public function removeJS(string $name): void
 	{
 		Assets::remove($name);
 	}
@@ -666,7 +663,7 @@ class Output extends Module
 	 * @param array $options
 	 * @deprecated
 	 */
-	public function addCSS(string $css, array $options = [])
+	public function addCSS(string $css, array $options = []): void
 	{
 		$options = array_merge([
 			'with' => [],
@@ -693,20 +690,19 @@ class Output extends Module
 	 * @param string $name
 	 * @deprecated
 	 */
-	public function removeCSS(string $name)
+	public function removeCSS(string $name): void
 	{
 		Assets::remove($name);
 	}
 
 	/**
-	 * Echoes or returns the html for the "head" or "foot" section of the page
+	 * Returns the html for the "head" or "foot" section of the page
 	 *
 	 * @param string $type
 	 * @param bool $useCache
 	 * @return string
-	 * @throws \Model\Core\Exception
 	 */
-	private function renderBasicSection(string $type, bool $useCache)
+	private function renderBasicSection(string $type, bool $useCache): string
 	{
 		ob_start();
 
@@ -770,7 +766,7 @@ class Output extends Module
 	/**
 	 * Prints the debug data
 	 */
-	private function showDebugData()
+	private function showDebugData(): void
 	{
 		$debug = $this->model->getDebugData();
 		?>
