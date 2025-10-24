@@ -12,26 +12,26 @@ class Output extends Module
 	private array $cache;
 	private array $renderingsMetaData = [];
 	protected array $options = [
-		'header' => [],
-		'footer' => [],
-		'bindHeaderToRequest' => false,
-		'bindFooterToRequest' => false,
-		'template-module-layout' => null,
-		'template-module' => null,
-		'template-folder' => [],
-		'template' => false,
-		'theme' => null,
-		'showLayout' => true,
-		'showMessages' => true,
-		'showDebugInfo' => true,
-		'template-engine' => true,
-		'cache' => false,
-		'cacheHeader' => true,
-		'cacheTemplate' => true,
-		'cacheFooter' => true,
-		'errors' => [],
-		'warnings' => [],
-		'messages' => [],
+			'header' => [],
+			'footer' => [],
+			'bindHeaderToRequest' => false,
+			'bindFooterToRequest' => false,
+			'template-module-layout' => null,
+			'template-module' => null,
+			'template-folder' => [],
+			'template' => false,
+			'theme' => null,
+			'showLayout' => true,
+			'showMessages' => true,
+			'showDebugInfo' => true,
+			'template-engine' => true,
+			'cache' => false,
+			'cacheHeader' => true,
+			'cacheTemplate' => true,
+			'cacheFooter' => true,
+			'errors' => [],
+			'warnings' => [],
+			'messages' => [],
 	];
 	private array $injectedGlobal = [];
 	private bool $messagesShown = false;
@@ -44,33 +44,35 @@ class Output extends Module
 		if (!Cache::isTagAware())
 			throw new \Exception('Output cache requires a tag aware adapter');
 
-		Events::subscribeTo(\Model\Db\Events\SelectQuery::class, function (\Model\Db\Events\SelectQuery $event) {
-			foreach ($this->renderingsMetaData as $template => $metadata) {
-				$linkedTables = $this->model->_Db->getLinkedTables($event->table);
-				foreach ($linkedTables as $table) {
-					if (!in_array($table, $metadata['tables']))
-						$this->renderingsMetaData[$template]['tables'][] = $table;
+		if (class_exists('\\Model\\Db\\Db')) {
+			Events::subscribeTo(\Model\Db\Events\SelectQuery::class, function (\Model\Db\Events\SelectQuery $event) {
+				foreach ($this->renderingsMetaData as $template => $metadata) {
+					$linkedTables = $this->model->_Db->getLinkedTables($event->table);
+					foreach ($linkedTables as $table) {
+						if (!in_array($table, $metadata['tables']))
+							$this->renderingsMetaData[$template]['tables'][] = $table;
 
-					if (class_exists('\\Model\\Multilang\\Ml') and isset(\Model\Multilang\Ml::getTables(\Model\Db\Db::getConnection())[$table]))
-						$this->renderingsMetaData[$template]['language-bound'] = true;
+						if (class_exists('\\Model\\Multilang\\Ml') and isset(\Model\Multilang\Ml::getTables(\Model\Db\Db::getConnection())[$table]))
+							$this->renderingsMetaData[$template]['language-bound'] = true;
+					}
 				}
-			}
-		});
+			});
 
-		Events::subscribeTo(\Model\Router\Events\UrlGet::class, function (\Model\Router\Events\UrlGet $event) {
-			if (class_exists('\\Model\\Multilang\\Ml')) {
+			Events::subscribeTo(\Model\Db\Events\ChangedTable::class, function (\Model\Db\Events\ChangedTable $event) {
+				$this->changedTable($event->table);
+			});
+		}
+
+		if (class_exists('\\Model\\Multilang\\Ml')) {
+			Events::subscribeTo(\Model\Router\Events\UrlGenerate::class, function (\Model\Router\Events\UrlGenerate $event) {
 				foreach ($this->renderingsMetaData as $template => $metadata)
 					$this->renderingsMetaData[$template]['language-bound'] = true;
-			}
-		});
+			});
 
-		Events::subscribeTo(\Model\Db\Events\ChangedTable::class, function (\Model\Db\Events\ChangedTable $event) {
-			$this->changedTable($event->table);
-		});
-
-		Events::subscribeTo(\Model\Multilang\Events\ChangedDictionary::class, function (\Model\Multilang\Events\ChangedDictionary $event) {
-			$this->changedDictionary();
-		});
+			Events::subscribeTo(\Model\Multilang\Events\ChangedDictionary::class, function (\Model\Multilang\Events\ChangedDictionary $event) {
+				$this->changedDictionary();
+			});
+		}
 	}
 
 	/**
@@ -79,7 +81,7 @@ class Output extends Module
 	 *
 	 * @param array $options
 	 */
-	public function render(array $options)
+	public function render(array $options): void
 	{
 		$this->options = array_merge($this->options, $options);
 
@@ -88,20 +90,20 @@ class Output extends Module
 				$this->options['header'] = [$this->options['header']];
 			foreach ($this->options['header'] as $t) {
 				$this->renderTemplate($t, [
-					'module' => $this->options['template-module-layout'] ?: $this->options['template-module'],
-					'cache' => $this->options['cacheHeader'],
-					'request-bound' => $this->options['bindHeaderToRequest'],
+						'module' => $this->options['template-module-layout'] ?: $this->options['template-module'],
+						'cache' => $this->options['cacheHeader'],
+						'request-bound' => $this->options['bindHeaderToRequest'],
 				]);
 			}
 		}
 
 		if ($this->options['template'] !== false and $this->options['template'] !== null) {
 			$this->renderTemplate($this->options['template'], [
-				'module' => $this->options['template-module'],
-				'cache' => $this->options['cacheTemplate'],
-				'show-messages' => $this->options['showMessages'],
-				'request-bound' => true,
-				'element' => $this->model->element,
+					'module' => $this->options['template-module'],
+					'cache' => $this->options['cacheTemplate'],
+					'show-messages' => $this->options['showMessages'],
+					'request-bound' => true,
+					'element' => $this->model->element,
 			]);
 		} else { // If there is no template, I still need to show eventual messages
 			if ($this->options['showMessages'] and !$this->messagesShown)
@@ -113,16 +115,15 @@ class Output extends Module
 				$this->options['footer'] = [$this->options['footer']];
 			foreach ($this->options['footer'] as $t) {
 				$this->renderTemplate($t, [
-					'module' => $this->options['template-module-layout'] ?: $this->options['template-module'],
-					'cache' => $this->options['cacheFooter'],
-					'request-bound' => $this->options['bindFooterToRequest'],
+						'module' => $this->options['template-module-layout'] ?: $this->options['template-module'],
+						'cache' => $this->options['cacheFooter'],
+						'request-bound' => $this->options['bindFooterToRequest'],
 				]);
 			}
 		}
 
-		if (DEBUG_MODE and $this->options['showDebugInfo'] and ($this->options['showLayout'] or isset($_COOKIE['ZK_SHOW_AJAX']))) {
+		if (DEBUG_MODE and $this->options['showDebugInfo'] and ($this->options['showLayout'] or isset($_COOKIE['ZK_SHOW_AJAX'])))
 			$this->showDebugData();
-		}
 	}
 
 	/**
@@ -136,13 +137,13 @@ class Output extends Module
 	public function renderTemplate(string $t, array $options = [])
 	{
 		$options = array_merge([
-			'cache' => true,
-			'request-bound' => false,
-			'show-messages' => false,
-			'element' => null,
-			'module' => null,
-			'return' => false,
-			'inject' => [],
+				'cache' => true,
+				'request-bound' => false,
+				'show-messages' => false,
+				'element' => null,
+				'module' => null,
+				'return' => false,
+				'inject' => [],
 		], $options);
 
 		if (!$this->options['cache']) // Main switch for the cache
@@ -226,29 +227,29 @@ class Output extends Module
 						if (str_starts_with($t, 't:')) { // Template
 							$template = substr($t, 2);
 							$sub_html = $this->renderTemplate($template, [
-								'cache' => $options['cache'],
-								'request-bound' => $options['request-bound'],
-								'return' => true,
-								'element' => $options['element'],
-								'inject' => $injected_vars,
+									'cache' => $options['cache'],
+									'request-bound' => $options['request-bound'],
+									'return' => true,
+									'element' => $options['element'],
+									'inject' => $injected_vars,
 							]);
 						} elseif (str_starts_with($t, 'td:')) { // Dynamic (non-cached) template
 							$template = substr($t, 3);
 							$sub_html = $this->renderTemplate($template, [
-								'cache' => false,
-								'request-bound' => $options['request-bound'],
-								'return' => true,
-								'element' => $options['element'],
-								'inject' => $injected_vars,
+									'cache' => false,
+									'request-bound' => $options['request-bound'],
+									'return' => true,
+									'element' => $options['element'],
+									'inject' => $injected_vars,
 							]);
 						} elseif (str_starts_with($t, 'tr:')) { // Request bound template
 							$template = substr($t, 3);
 							$sub_html = $this->renderTemplate($template, [
-								'cache' => $options['cache'],
-								'request-bound' => true,
-								'return' => true,
-								'element' => $options['element'],
-								'inject' => $injected_vars,
+									'cache' => $options['cache'],
+									'request-bound' => true,
+									'return' => true,
+									'element' => $options['element'],
+									'inject' => $injected_vars,
 							]);
 						}
 					}
@@ -280,7 +281,7 @@ class Output extends Module
 	public function findTemplateFile(string $t, ?string $module = null)
 	{
 		$files = [
-			$t,
+				$t,
 		];
 
 		foreach ($this->options['template-folder'] as $folder) {
@@ -308,8 +309,8 @@ class Output extends Module
 
 			if ($file) {
 				return [
-					'path' => $file,
-					'modified' => filemtime($file),
+						'path' => $file,
+						'modified' => filemtime($file),
 				];
 			}
 		}
@@ -347,8 +348,8 @@ class Output extends Module
 	{
 		if (!isset($this->renderingsMetaData[$template])) {
 			$this->renderingsMetaData[$template] = [
-				'tables' => [],
-				'language-bound' => false,
+					'tables' => [],
+					'language-bound' => false,
 			];
 
 			if ($element) {
@@ -382,8 +383,8 @@ class Output extends Module
 		}
 
 		$ret = [
-			'html' => $html,
-			'data' => $this->renderingsMetaData[$template],
+				'html' => $html,
+				'data' => $this->renderingsMetaData[$template],
 		];
 		unset($this->renderingsMetaData[$template]);
 
@@ -494,8 +495,8 @@ class Output extends Module
 		}
 
 		$arr = [
-			'ZKBINDINGS' => [],
-			'ZKDATA' => $arr,
+				'ZKBINDINGS' => [],
+				'ZKDATA' => $arr,
 		];
 
 		if (DEBUG_MODE and isset($_COOKIE['ZK_SHOW_JSON']))
@@ -582,9 +583,9 @@ class Output extends Module
 	private function getMessageSetHtml(array $messages, string $type): string
 	{
 		$classes = [
-			'danger' => 'red-message',
-			'warning' => 'orange-message',
-			'success' => 'green-message',
+				'danger' => 'red-message',
+				'warning' => 'orange-message',
+				'success' => 'green-message',
 		];
 		if (!isset($classes[$type]))
 			$this->model->error('Unrecognized message type in output module');
@@ -613,86 +614,6 @@ class Output extends Module
 			}
 		}
 		return $html;
-	}
-
-	/**
-	 * Adds a JavaScript file to the output
-	 *
-	 * @param string $js
-	 * @param array $options
-	 * @deprecated
-	 */
-	public function addJS(string $js, array $options = []): void
-	{
-		$options = array_merge([
-			'with' => [],
-			'but' => [],
-			'custom' => true,
-			'head' => true,
-			'cacheable' => true,
-			'defer' => false,
-			'async' => false,
-		], $options);
-
-		$options['type'] = 'js';
-
-		$options['withTags'] = $options['with'];
-		unset($options['with']);
-
-		$options['exceptTags'] = $options['but'];
-		unset($options['but']);
-
-		Assets::add($js, $options);
-	}
-
-	/**
-	 * Removes a JavaScript file to the output
-	 *
-	 * @param string $name
-	 * @deprecated
-	 */
-	public function removeJS(string $name): void
-	{
-		Assets::remove($name);
-	}
-
-	/**
-	 * Adds a CSS file to the output
-	 *
-	 * @param string $css
-	 * @param array $options
-	 * @deprecated
-	 */
-	public function addCSS(string $css, array $options = []): void
-	{
-		$options = array_merge([
-			'with' => [],
-			'but' => [],
-			'custom' => true,
-			'cacheable' => true,
-			'defer' => false,
-		], $options);
-
-		$options['type'] = 'css';
-
-		$options['withTags'] = $options['with'];
-		unset($options['with']);
-
-		$options['exceptTags'] = $options['but'];
-		unset($options['but']);
-
-		Assets::add($css, $options);
-	}
-
-	/**
-	 * Removes a CSS file to the output
-	 *
-	 * @param string $name
-	 * @deprecated
-	 */
-	public function removeCSS(string $name): void
-	{
-		Assets::remove($name);
 	}
 
 	/**
@@ -755,10 +676,14 @@ class Output extends Module
 				throw new \Exception('Unknown basic section type.');
 		}
 
-		Assets::render([
-			'position-' . $type,
-			'module-' . $this->model->leadingModule,
-		]);
+		$tags = [
+				'position' => $type,
+		];
+
+		if ($this->model->getRouter()->activeRoute)
+			$tags['provider'] = $this->model->getRouter()->activeRoute['tags']['provider'] ?? null;
+
+		Assets::render($tags);
 
 		return ob_get_clean();
 	}

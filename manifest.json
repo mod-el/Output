@@ -1,7 +1,7 @@
 {
 	"name": "Output",
 	"description": "Templating engine with cache management",
-	"version": "0.9.0",
+	"version": "0.10.0",
 	"dependencies": {
 		"Core": ">=3.0.0"
 	},
@@ -12,12 +12,6 @@
 		}
 	},
 	"bind-methods": {
-		"addCSS": "addCSS",
-		"addJS": "addJS",
-		"removeCSS": "removeCSS",
-		"removeJS": "removeJS",
-		"wipeCSS": "wipeCSS",
-		"wipeJS": "wipeJS",
 		"sendJSON": "sendJSON",
 		"inject": "inject",
 		"injected": "injected"
