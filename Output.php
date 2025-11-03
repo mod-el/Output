@@ -660,17 +660,19 @@ class Output extends Module
 				<script>
 					/* Backward compatibility */
 					var base_path = '<?=PATH?>';
-					var absolute_path = '<?=$this->model->prefix()?>';
+					var absolute_path = '<?=PATH?>';
 					var absolute_url = <?=json_encode($this->model->getRequest())?>;
 
 					var PATHBASE = '<?=PATH?>';
-					var PATH = '<?=$this->model->prefix()?>';
+					var PATH = '<?=PATH?>';
 					var REQUEST = <?=json_encode($this->model->getRequest())?>;
 				</script>
 				<?php
 				break;
+
 			case 'foot':
 				break;
+
 			default:
 				ob_clean();
 				throw new \Exception('Unknown basic section type.');
