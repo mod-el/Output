@@ -699,8 +699,6 @@ class Output extends Module
 		?>
 		<div data-zkdebug="<?= $this->options['showLayout'] ? 'main' : 'ajax' ?>" data-url="<?= $debug['request'] ?>"
 		     style="display: none">
-			<b>Prefix:</b> <?= $debug['prefix'] ?>
-			<br/>
 			<b>Request:</b> <?= $debug['request'] ?>
 			<br/>
 			<b>Execution time:</b> <?= $debug['execution_time'] ?>
