@@ -705,12 +705,20 @@ class Output extends Module
 			<br/>
 			<b>Controller:</b> <?= $debug['controller'] ?>
 			<br/>
-			<?php if (isset($debug['pageId'])) { ?>
+			<?php if (isset($debug['pageId'])) {
+				?>
 				<b>Page Id:</b> <?= $debug['pageId'] ?>
-				<br/><?php } ?>
-			<?php if (isset($debug['elementType'], $debug['elementId'])) { ?>
+				<br/>
+				<?php
+			}
+
+			if (isset($debug['elementType'], $debug['elementId'])) {
+				?>
 				<b>Element:</b> <?= $debug['elementType'] . ' #' . $debug['elementId'] ?>
-				<br/><?php } ?>
+				<br/>
+				<?php
+			}
+			?>
 			<b>Modules:</b> <?= implode(', ', $debug['modules']) ?>
 			<br/>
 			<b>Template:</b> <?= $this->options['template'] ?: 'none' ?>
@@ -718,11 +726,9 @@ class Output extends Module
 			<b>Loading ID:</b> <?= $debug['loading_id'] ?>
 			<br/>
 			<?php
-			if (isset($debug['n_query'])) {
+			if (isset($debug['query'])) {
 				?>
-				<b>Executed queries:</b> <?= $debug['n_query'] ?>
-				<br/>
-				<b>Prepared queries:</b> <?= $debug['n_prepared'] ?>
+				<b>Executed queries:</b> <?= $debug['query'] ?>
 				<br/>
 				<b>Queries per table:</b>
 				<br/>
